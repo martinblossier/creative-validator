@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, FormEvent } from 'react';
+import type { Recurrence } from '@/lib/client-meta';
 
 export function NewClientModal({
   onClose,
@@ -11,6 +12,7 @@ export function NewClientModal({
 }) {
   const [clientName, setClientName] = useState('');
   const [driveFolderUrl, setDriveFolderUrl] = useState('');
+  const [recurrence, setRecurrence] = useState<Recurrence | ''>('');
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [newUrl, setNewUrl] = useState<string | null>(null);
@@ -19,13 +21,19 @@ export function NewClientModal({
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+
+    if (!recurrence) {
+      setError('Merci de préciser si ce client est récurrent ou one shot.');
+      return;
+    }
+
     setCreating(true);
 
     try {
       const res = await fetch('/api/creative/sessions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clientName, driveFolderUrl }),
+        body: JSON.stringify({ clientName, driveFolderUrl, recurrence }),
       });
       const data = await res.json();
 
@@ -118,6 +126,36 @@ export function NewClientModal({
               />
             </div>
 
+            <div className="flex flex-col gap-1.5">
+              <label className="font-body text-sm font-semibold text-asight-dark">
+                Type de client
+              </label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setRecurrence('recurrent')}
+                  className={`flex-1 rounded-lg border-2 px-4 py-3 font-body text-sm font-semibold transition-colors ${
+                    recurrence === 'recurrent'
+                      ? 'border-asight-violet bg-asight-lavande text-asight-violet'
+                      : 'border-asight-muted text-asight-dark/60 hover:border-asight-violet/50'
+                  }`}
+                >
+                  Récurrent
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRecurrence('one_shot')}
+                  className={`flex-1 rounded-lg border-2 px-4 py-3 font-body text-sm font-semibold transition-colors ${
+                    recurrence === 'one_shot'
+                      ? 'border-asight-violet bg-asight-lavande text-asight-violet'
+                      : 'border-asight-muted text-asight-dark/60 hover:border-asight-violet/50'
+                  }`}
+                >
+                  One shot
+                </button>
+              </div>
+            </div>
+
             {error && (
               <p className="rounded-lg bg-asight-red/10 px-3 py-2 font-body text-sm text-asight-red">
                 {error}
@@ -127,7 +165,7 @@ export function NewClientModal({
             <div className="flex items-center gap-3">
               <button
                 type="submit"
-                disabled={creating}
+                disabled={creating || !recurrence}
                 className="rounded-full bg-asight-violet px-6 py-3 font-body font-semibold text-white transition-colors hover:bg-asight-violet-dark disabled:opacity-50"
               >
                 {creating ? 'Création…' : 'Créer et générer le lien'}

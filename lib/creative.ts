@@ -8,6 +8,7 @@ import {
 } from './sheets';
 import type { ProductionStatus } from './production-status';
 import { getSeenReadyCount } from './notifications';
+import { getAllClientMeta, type Recurrence } from './client-meta';
 
 export type BatchGlobalStatus = 'ready_to_send' | 'in_progress' | 'late';
 
@@ -36,6 +37,7 @@ export type BatchOverview = {
 
 export type ClientOverview = {
   clientName: string;
+  recurrence: Recurrence | null;
   batches: BatchOverview[];
   kpis: {
     totalCreatives: number;
@@ -108,6 +110,7 @@ export async function getClientsOverview(): Promise<ClientOverview[]> {
     new Set(sessions.map((s) => s.clientName))
   ).sort((a, b) => a.localeCompare(b, 'fr'));
 
+  const metaByClient = await getAllClientMeta(clientNames);
   const overviews: ClientOverview[] = [];
 
   for (const clientName of clientNames) {
@@ -170,6 +173,7 @@ export async function getClientsOverview(): Promise<ClientOverview[]> {
 
     overviews.push({
       clientName,
+      recurrence: metaByClient[clientName]?.recurrence ?? null,
       batches,
       kpis: {
         totalCreatives,
