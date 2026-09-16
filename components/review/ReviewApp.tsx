@@ -174,7 +174,7 @@ export function ReviewApp({ token }: { token: string }) {
       </div>
 
       <div className="flex flex-1 flex-col items-center justify-center gap-6">
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="popLayout" initial={false}>
           {currentCreative && (
             <CreativeCard
               key={currentCreative.id}
