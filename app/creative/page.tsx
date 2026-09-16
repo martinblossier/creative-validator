@@ -1,9 +1,12 @@
 import { isCreativeAuthenticated } from '@/lib/creative-auth';
 import { CreativeLogin } from '@/components/creative/CreativeLogin';
-import { CreativeDashboard } from '@/components/creative/CreativeDashboard';
+import { CreativeRoleGate } from '@/components/creative/CreativeRoleGate';
+import { getTeamMembers } from '@/lib/team-store';
 
-export default function CreativePage() {
+export default async function CreativePage() {
   const authenticated = isCreativeAuthenticated();
+  if (!authenticated) return <CreativeLogin />;
 
-  return authenticated ? <CreativeDashboard /> : <CreativeLogin />;
+  const teamMembers = await getTeamMembers();
+  return <CreativeRoleGate teamMembers={teamMembers} />;
 }

@@ -6,8 +6,9 @@ import { Logo } from '@/components/Logo';
 import { BatchPanel } from './BatchPanel';
 import { NewCycleModal } from './NewCycleModal';
 import { NewClientModal } from './NewClientModal';
-import { TraficCreatif } from './TraficCreatif';
-import type { ClientOverview, BatchOverview } from '@/lib/creative';
+import { TrafficManagerView } from './TrafficManagerView';
+import type { ClientOverview } from '@/lib/creative';
+import type { TeamMember, TeamRole } from '@/lib/team-store';
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('fr-FR', {
@@ -38,7 +39,7 @@ export function CreativeDashboard() {
   const [newClientOpen, setNewClientOpen] = useState(false);
   const [newCycleOpen, setNewCycleOpen] = useState(false);
   const [view, setView] = useState<View>('clients');
-  const [teamMembers, setTeamMembers] = useState<string[]>([]);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
 
   const load = useCallback(async () => {
     const res = await fetch('/api/creative/clients');
@@ -64,8 +65,8 @@ export function CreativeDashboard() {
     loadTeam();
   }, [load, loadTeam]);
 
-  function handleTeamMemberAdded(name: string) {
-    setTeamMembers((prev) => (prev.includes(name) ? prev : [...prev, name]));
+  function handleTeamMemberAdded(name: string, role: TeamRole) {
+    setTeamMembers((prev) => (prev.some((m) => m.name === name) ? prev : [...prev, { name, role }]));
   }
 
   async function handleLogout() {
@@ -73,27 +74,17 @@ export function CreativeDashboard() {
     router.refresh();
   }
 
+  function changeRole() {
+    sessionStorage.removeItem('creative_role');
+    sessionStorage.removeItem('creative_member');
+    router.push('/creative');
+  }
+
   async function handleClientCreated(clientName: string) {
     setNewClientOpen(false);
     await load();
     setSelectedClient(clientName);
     setView('clients');
-  }
-
-  function handleBatchUpdated(
-    token: string,
-    patch: Partial<Pick<BatchOverview, 'assignedTo' | 'status' | 'archived'>>
-  ) {
-    setClients((prev) =>
-      prev
-        ? prev.map((c) => ({
-            ...c,
-            batches: c.batches.map((b) =>
-              b.token === token ? { ...b, ...patch } : b
-            ),
-          }))
-        : prev
-    );
   }
 
   const client = clients?.find((c) => c.clientName === selectedClient) ?? null;
@@ -178,7 +169,13 @@ export function CreativeDashboard() {
             ))}
           </ul>
         </nav>
-        <div className="border-t border-asight-lavande p-4">
+        <div className="flex flex-col gap-2 border-t border-asight-lavande p-4">
+          <button
+            onClick={changeRole}
+            className="font-body text-xs font-semibold text-asight-dark/40 hover:text-asight-dark"
+          >
+            Changer de rôle
+          </button>
           <button
             onClick={handleLogout}
             className="w-full rounded-full bg-asight-lavande px-4 py-2 font-body text-sm font-semibold text-asight-dark transition-colors hover:bg-asight-lavande-alt"
@@ -256,11 +253,10 @@ export function CreativeDashboard() {
         )}
 
         {view === 'trafic' && clients && clients.length > 0 && (
-          <TraficCreatif
+          <TrafficManagerView
             clients={clients}
             teamMembers={teamMembers}
-            onBatchUpdated={handleBatchUpdated}
-            onSyncFailed={load}
+            onRefresh={load}
             onTeamMemberAdded={handleTeamMemberAdded}
           />
         )}
@@ -317,7 +313,6 @@ export function CreativeDashboard() {
                       <option key={b.token} value={b.token}>
                         {b.isComplete ? '✓ ' : '… '}
                         {b.displayName}
-                        {b.archived ? ' · archivé' : ''}
                       </option>
                     ))}
                   </select>

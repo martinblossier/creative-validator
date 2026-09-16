@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession, incrementReviewedCount, updateSession } from '@/lib/sessions';
+import { getSession, incrementReviewedCount } from '@/lib/sessions';
 import {
   appendReviewRow,
   formatDecisionDate,
@@ -63,18 +63,20 @@ export async function POST(req: NextRequest) {
       session.totalCreatives !== null && reviewedSoFar >= session.totalCreatives;
 
     if (batchComplete) {
-      await updateSession(token, { status: 'a_commencer' });
-
       const batchLabel = `V${session.batchNumber}`;
       const rows = await getClientRows(sheetId, session.clientName);
       const batchRows = rows.filter((r) => r.batch === batchLabel);
       const validated = batchRows.filter((r) => r.status === STATUS_VALIDATED).length;
       const rejected = batchRows.filter((r) => r.status === STATUS_REJECTED).length;
 
+      const attributionLine =
+        rejected > 0
+          ? `\n→ ${rejected} créa${rejected !== 1 ? 's' : ''} à attribuer dans le Trafic créatif.`
+          : '';
+
       await notifySlack(
         `📋 *${session.clientName}* a terminé la validation du batch *${batchLabel}*\n` +
-          `✅ ${validated} validée${validated !== 1 ? 's' : ''} · 🔄 ${rejected} à retravailler\n` +
-          `→ Batch remis dans "À commencer" dans le Trafic créatif.`
+          `✅ ${validated} validée${validated !== 1 ? 's' : ''} · 🔄 ${rejected} à retravailler${attributionLine}`
       );
     }
 

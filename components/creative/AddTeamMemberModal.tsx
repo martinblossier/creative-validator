@@ -1,15 +1,17 @@
 'use client';
 
 import { useState, FormEvent } from 'react';
+import type { TeamRole } from '@/lib/team-store';
 
 export function AddTeamMemberModal({
   onClose,
   onAdded,
 }: {
   onClose: () => void;
-  onAdded: (name: string) => void;
+  onAdded: (name: string, role: TeamRole) => void;
 }) {
   const [name, setName] = useState('');
+  const [role, setRole] = useState<TeamRole>('creative');
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,7 +24,7 @@ export function AddTeamMemberModal({
       const res = await fetch('/api/creative/team', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim() }),
+        body: JSON.stringify({ name: name.trim(), role }),
       });
       const data = await res.json();
 
@@ -32,7 +34,7 @@ export function AddTeamMemberModal({
         return;
       }
 
-      onAdded(name.trim());
+      onAdded(name.trim(), role);
     } catch {
       setError('Une erreur est survenue. Réessayez.');
       setCreating(false);
@@ -55,7 +57,7 @@ export function AddTeamMemberModal({
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <label className="font-body text-sm font-semibold text-asight-dark">
-              Nom
+              Prénom
             </label>
             <input
               value={name}
@@ -65,6 +67,20 @@ export function AddTeamMemberModal({
               autoFocus
               className="rounded-lg border border-asight-muted bg-white px-4 py-3 font-body text-asight-dark outline-none focus:ring-2 focus:ring-asight-violet"
             />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="font-body text-sm font-semibold text-asight-dark">
+              Rôle
+            </label>
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value as TeamRole)}
+              className="rounded-lg border border-asight-muted bg-white px-4 py-3 font-body text-asight-dark outline-none focus:ring-2 focus:ring-asight-violet"
+            >
+              <option value="creative">Créatif·ve</option>
+              <option value="traffic">Traffic Manager</option>
+            </select>
           </div>
 
           {error && (

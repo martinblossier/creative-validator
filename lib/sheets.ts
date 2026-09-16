@@ -1,6 +1,7 @@
 import { google, sheets_v4 } from 'googleapis';
 import { getGoogleAuth } from './google-auth';
 import { STATUS_VALIDATED, STATUS_REJECTED } from './status';
+import { PRODUCTION_STATUSES, type ProductionStatus } from './production-status';
 
 const HEADERS = [
   'Nom de la créa',
@@ -10,6 +11,10 @@ const HEADERS = [
   'Lien Drive',
   'Date de décision',
   'Batch',
+  'Assigné à',
+  'Statut production',
+  'Lien nouvelle version',
+  'Deadline',
 ];
 
 export { STATUS_VALIDATED, STATUS_REJECTED };
@@ -22,6 +27,10 @@ export type SheetRow = {
   driveLink: string;
   decisionDate: string; // DD/MM/YYYY HH:mm
   batch: string; // e.g. "V1"
+  assignedTo: string;
+  productionStatus: ProductionStatus | '';
+  newVersionLink: string;
+  deadline: string; // YYYY-MM-DD
 };
 
 /** Parses a "DD/MM/YYYY HH:mm" string back into a Date, or null if invalid. */
@@ -62,6 +71,7 @@ async function ensureClientTab(
 
   if (existing?.properties?.sheetId != null) {
     await ensureBatchColumnHeader(sheets, spreadsheetId, tabName);
+    await ensureProductionColumnsHeader(sheets, spreadsheetId, tabName);
     return existing.properties.sheetId;
   }
 
@@ -91,7 +101,7 @@ async function ensureClientTab(
   // Write header row
   await sheets.spreadsheets.values.update({
     spreadsheetId,
-    range: `${tabName}!A1:G1`,
+    range: `${tabName}!A1:K1`,
     valueInputOption: 'RAW',
     requestBody: { values: [HEADERS] },
   });
@@ -219,22 +229,55 @@ async function ensureBatchColumnHeader(
 }
 
 /**
+ * Non-destructive migration for tabs created before the production-tracking
+ * columns existed: only labels H1:K1 if still blank. Never touches existing
+ * data in A:G, so already-logged rows stay perfectly aligned.
+ */
+async function ensureProductionColumnsHeader(
+  sheets: sheets_v4.Sheets,
+  spreadsheetId: string,
+  tabName: string
+): Promise<void> {
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: `${tabName}!H1:K1`,
+  });
+  const hasHeader = Boolean(res.data.values?.[0]?.[0]?.toString().trim());
+  if (hasHeader) return;
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId,
+    range: `${tabName}!H1:K1`,
+    valueInputOption: 'RAW',
+    requestBody: { values: [HEADERS.slice(7)] },
+  });
+}
+
+/**
  * Appends a review decision row to the client's tab, creating the tab
- * (with header row + conditional formatting) if needed.
+ * (with header row + conditional formatting) if needed. Rework rows start
+ * production tracking at "Non assignée"; validated rows have no production
+ * status since nothing needs to be reworked.
  */
 export async function appendReviewRow(
   spreadsheetId: string,
   clientName: string,
-  row: SheetRow
+  row: Pick<
+    SheetRow,
+    'creativeName' | 'fileName' | 'status' | 'comment' | 'driveLink' | 'decisionDate' | 'batch'
+  >
 ): Promise<void> {
   const sheets = getSheetsClient();
   const tabName = sanitizeTabName(clientName);
 
   await ensureClientTab(sheets, spreadsheetId, tabName);
 
+  const productionStatus: ProductionStatus | '' =
+    row.status === STATUS_REJECTED ? 'Non assignée' : '';
+
   await sheets.spreadsheets.values.append({
     spreadsheetId,
-    range: `${tabName}!A:G`,
+    range: `${tabName}!A:K`,
     valueInputOption: 'USER_ENTERED',
     insertDataOption: 'INSERT_ROWS',
     requestBody: {
@@ -247,6 +290,10 @@ export async function appendReviewRow(
           row.driveLink,
           row.decisionDate,
           row.batch,
+          '',
+          productionStatus,
+          '',
+          '',
         ],
       ],
     },
@@ -268,7 +315,7 @@ export async function getClientRows(
   try {
     const res = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: `${tabName}!A2:G`,
+      range: `${tabName}!A2:K`,
     });
     values = (res.data.values as string[][]) ?? [];
   } catch (err) {
@@ -278,16 +325,115 @@ export async function getClientRows(
 
   return values
     .filter((r) => r[0])
-    .map((r) => ({
-      creativeName: r[0] ?? '',
-      fileName: r[1] ?? '',
-      status:
-        r[2] === STATUS_REJECTED ? STATUS_REJECTED : STATUS_VALIDATED,
-      comment: r[3] ?? '',
-      driveLink: r[4] ?? '',
-      decisionDate: r[5] ?? '',
-      batch: r[6]?.trim() || 'V1',
-    }));
+    .map((r) => {
+      const status = r[2] === STATUS_REJECTED ? STATUS_REJECTED : STATUS_VALIDATED;
+      const rawProductionStatus = r[8]?.trim() ?? '';
+      const productionStatus: ProductionStatus | '' = PRODUCTION_STATUSES.includes(
+        rawProductionStatus as ProductionStatus
+      )
+        ? (rawProductionStatus as ProductionStatus)
+        : status === STATUS_REJECTED
+          ? 'Non assignée'
+          : '';
+
+      return {
+        creativeName: r[0] ?? '',
+        fileName: r[1] ?? '',
+        status,
+        comment: r[3] ?? '',
+        driveLink: r[4] ?? '',
+        decisionDate: r[5] ?? '',
+        batch: r[6]?.trim() || 'V1',
+        assignedTo: r[7] ?? '',
+        productionStatus,
+        newVersionLink: r[9] ?? '',
+        deadline: r[10] ?? '',
+      };
+    });
+}
+
+/**
+ * Updates the production-tracking columns (H:K) of a single row, identified
+ * by file name + batch within the client's tab. Only the passed fields are
+ * changed — existing values for the others are preserved.
+ */
+export async function updateReviewRow(
+  spreadsheetId: string,
+  clientName: string,
+  match: { fileName: string; batch: string },
+  patch: Partial<
+    Pick<SheetRow, 'assignedTo' | 'productionStatus' | 'newVersionLink' | 'deadline'>
+  >
+): Promise<boolean> {
+  const sheets = getSheetsClient();
+  const tabName = sanitizeTabName(clientName);
+
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: `${tabName}!A2:K`,
+  });
+  const values = (res.data.values as string[][]) ?? [];
+
+  const rowIndex = values.findIndex(
+    (r) => r[1] === match.fileName && (r[6]?.trim() || 'V1') === match.batch
+  );
+  if (rowIndex === -1) return false;
+
+  const row = values[rowIndex];
+  const rowNumber = rowIndex + 2;
+
+  const merged = [
+    patch.assignedTo ?? row[7] ?? '',
+    patch.productionStatus ?? row[8] ?? '',
+    patch.newVersionLink ?? row[9] ?? '',
+    patch.deadline ?? row[10] ?? '',
+  ];
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId,
+    range: `${tabName}!H${rowNumber}:K${rowNumber}`,
+    valueInputOption: 'RAW',
+    requestBody: { values: [merged] },
+  });
+
+  return true;
+}
+
+/**
+ * Applies a single deadline to every rework row ("À retravailler") of a
+ * given batch in one client tab. Returns the number of rows updated.
+ */
+export async function setBatchDeadline(
+  spreadsheetId: string,
+  clientName: string,
+  batch: string,
+  deadline: string
+): Promise<number> {
+  const sheets = getSheetsClient();
+  const tabName = sanitizeTabName(clientName);
+
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: `${tabName}!A2:K`,
+  });
+  const values = (res.data.values as string[][]) ?? [];
+
+  const data: sheets_v4.Schema$ValueRange[] = [];
+  values.forEach((row, i) => {
+    const rowBatch = row[6]?.trim() || 'V1';
+    if (rowBatch === batch && row[2] === STATUS_REJECTED) {
+      data.push({ range: `${tabName}!K${i + 2}`, values: [[deadline]] });
+    }
+  });
+
+  if (data.length === 0) return 0;
+
+  await sheets.spreadsheets.values.batchUpdate({
+    spreadsheetId,
+    requestBody: { valueInputOption: 'RAW', data },
+  });
+
+  return data.length;
 }
 
 /** Google Sheets tab names can't contain: : \ / ? * [ ] and must be <= 100 chars */

@@ -1,6 +1,5 @@
 import { kv } from '@vercel/kv';
 import { nanoid } from 'nanoid';
-import { type TrafficStatus } from './traffic-status';
 
 export type Session = {
   token: string;
@@ -10,23 +9,14 @@ export type Session = {
   totalCreatives: number | null;
   reviewedCount: number;
   batchNumber: number;
-  assignedTo: string | null;
-  status: TrafficStatus;
-  archived: boolean;
 };
 
 const SESSION_KEY = (token: string) => `session:${token}`;
 const SESSION_INDEX_KEY = 'sessions:index';
 
-/** Legacy sessions created before batch/assignment/status/archive tracking existed get defaults. */
+/** Legacy sessions created before batch tracking existed default to V1. */
 function normalizeSession(session: Session): Session {
-  return {
-    ...session,
-    batchNumber: session.batchNumber ?? 1,
-    assignedTo: session.assignedTo ?? null,
-    status: session.status ?? 'a_commencer',
-    archived: session.archived ?? false,
-  };
+  return { ...session, batchNumber: session.batchNumber ?? 1 };
 }
 
 export async function createSession(
@@ -47,9 +37,6 @@ export async function createSession(
     totalCreatives: null,
     reviewedCount: 0,
     batchNumber,
-    assignedTo: null,
-    status: 'a_commencer',
-    archived: false,
   };
 
   await kv.set(SESSION_KEY(token), session);

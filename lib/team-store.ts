@@ -1,10 +1,21 @@
 import { kv } from '@vercel/kv';
 
-const TEAM_KEY = 'creative:team_members';
-const DEFAULT_TEAM = ['Aïda', 'Louana', 'Lisa'];
+export type TeamRole = 'traffic' | 'creative';
 
-export async function getTeamMembers(): Promise<string[]> {
-  const members = await kv.get<string[]>(TEAM_KEY);
+export type TeamMember = {
+  name: string;
+  role: TeamRole;
+};
+
+const TEAM_KEY = 'creative:team';
+const DEFAULT_TEAM: TeamMember[] = [
+  { name: 'Aïda', role: 'creative' },
+  { name: 'Louana', role: 'creative' },
+  { name: 'Lisa', role: 'creative' },
+];
+
+export async function getTeamMembers(): Promise<TeamMember[]> {
+  const members = await kv.get<TeamMember[]>(TEAM_KEY);
   if (!members || members.length === 0) {
     await kv.set(TEAM_KEY, DEFAULT_TEAM);
     return DEFAULT_TEAM;
@@ -12,10 +23,13 @@ export async function getTeamMembers(): Promise<string[]> {
   return members;
 }
 
-export async function addTeamMember(name: string): Promise<string[]> {
+export async function addTeamMember(
+  name: string,
+  role: TeamRole
+): Promise<TeamMember[]> {
   const members = await getTeamMembers();
-  if (members.includes(name)) return members;
-  const updated = [...members, name];
+  if (members.some((m) => m.name === name)) return members;
+  const updated = [...members, { name, role }];
   await kv.set(TEAM_KEY, updated);
   return updated;
 }
