@@ -26,14 +26,14 @@ export function RejectModal({
       {open && (
         <>
           <motion.div
-            className="fixed inset-0 z-40 bg-asight-dark/40"
+            className="fixed inset-0 z-40 bg-asight-dark/40 lg:hidden"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onCancel}
           />
           <motion.div
-            className="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl border-t-4 border-asight-violet bg-white p-6 shadow-card sm:inset-x-auto sm:left-1/2 sm:bottom-auto sm:top-1/2 sm:w-full sm:max-w-md sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl"
+            className="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl border-t-4 border-asight-violet bg-white p-6 shadow-card lg:inset-x-auto lg:inset-y-0 lg:left-auto lg:right-0 lg:top-0 lg:flex lg:h-full lg:w-full lg:max-w-sm lg:flex-col lg:justify-center lg:rounded-none lg:rounded-l-2xl lg:border-l-4 lg:border-t-0"
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}

@@ -195,14 +195,14 @@ export function ReviewApp({ token }: { token: string }) {
           <button
             onClick={handleRejectClick}
             disabled={submitting}
-            className="flex-1 rounded-full bg-asight-red px-6 py-4 font-body text-lg font-semibold text-white transition-transform hover:opacity-90 active:scale-95 disabled:opacity-50"
+            className="flex-1 rounded-full bg-asight-red px-6 py-4 font-body text-lg font-semibold text-white shadow-lg shadow-asight-red/30 transition-all duration-150 hover:scale-[1.03] hover:opacity-95 hover:shadow-xl active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
           >
             🔄 À retravailler
           </button>
           <button
             onClick={handleValidate}
             disabled={submitting}
-            className="flex-1 rounded-full bg-asight-green px-6 py-4 font-body text-lg font-semibold text-asight-dark transition-transform hover:opacity-90 active:scale-95 disabled:opacity-50"
+            className="flex-1 rounded-full bg-asight-green px-6 py-4 font-body text-lg font-semibold text-asight-dark shadow-lg shadow-asight-green/40 transition-all duration-150 hover:scale-[1.03] hover:opacity-95 hover:shadow-xl active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
           >
             ✅ Valider
           </button>
