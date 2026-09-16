@@ -59,7 +59,6 @@ export function CreativeDashboard() {
     const data = await res.json();
     const loaded: ClientOverview[] = data.clients ?? [];
     setClients(loaded);
-    setSelectedClient((prev) => prev ?? loaded[0]?.clientName ?? null);
   }, [router]);
 
   const loadTeam = useCallback(async () => {
@@ -87,6 +86,11 @@ export function CreativeDashboard() {
     sessionStorage.removeItem('creative_role');
     sessionStorage.removeItem('creative_member');
     router.push('/creative');
+  }
+
+  function goToView(v: View) {
+    setView(v);
+    if (v === 'clients') setSelectedClient(null);
   }
 
   async function handleClientCreated(clientName: string) {
@@ -123,7 +127,7 @@ export function CreativeDashboard() {
             {NAV_ITEMS.map((item) => (
               <li key={item.view}>
                 <button
-                  onClick={() => setView(item.view)}
+                  onClick={() => goToView(item.view)}
                   className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 font-body text-sm font-semibold transition-colors ${
                     view === item.view
                       ? 'bg-asight-violet text-white shadow-sm'
@@ -222,7 +226,7 @@ export function CreativeDashboard() {
             {NAV_ITEMS.map((item) => (
               <button
                 key={item.view}
-                onClick={() => setView(item.view)}
+                onClick={() => goToView(item.view)}
                 className={`flex flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 font-body text-xs font-semibold transition-colors ${
                   view === item.view ? 'bg-white text-asight-dark shadow-sm' : 'text-asight-dark/50'
                 }`}
@@ -271,6 +275,62 @@ export function CreativeDashboard() {
           </p>
         )}
 
+        {view === 'clients' && !client && clients && clients.length > 0 && (
+          <div>
+            <h1 className="mb-1 font-heading text-2xl font-bold text-asight-dark">Clients</h1>
+            <p className="mb-6 font-body text-sm text-asight-dark/50">
+              {clients.length} client{clients.length !== 1 ? 's' : ''} — cliquez sur un client pour
+              voir ses batchs.
+            </p>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {clients.map((c) => (
+                <button
+                  key={c.clientName}
+                  onClick={() => {
+                    setSelectedClient(c.clientName);
+                    setSelectedBatchToken(null);
+                  }}
+                  className="flex flex-col gap-3 rounded-2xl border border-asight-lavande bg-white p-5 text-left shadow-card transition-all hover:-translate-y-0.5 hover:shadow-lg"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-asight-lavande text-sm font-bold text-asight-violet">
+                      {c.clientName.charAt(0).toUpperCase()}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-heading font-bold text-asight-dark">
+                        {c.clientName}
+                      </p>
+                      <p className="font-body text-xs text-asight-dark/50">
+                        {c.kpis.cyclesCount} cycle{c.kpis.cyclesCount !== 1 ? 's' : ''}
+                      </p>
+                    </div>
+                    {c.hasUnseenReady && (
+                      <span
+                        className="h-2 w-2 flex-shrink-0 rounded-full bg-asight-red"
+                        title="Nouvelles créas prêtes"
+                      />
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between border-t border-asight-lavande pt-3">
+                    <div>
+                      <p className="font-body text-xs text-asight-dark/40">Validation</p>
+                      <p className="font-heading font-bold text-asight-dark">
+                        {Math.round(c.kpis.validationRate * 100)}%
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-body text-xs text-asight-dark/40">Dernière activité</p>
+                      <p className="font-body text-sm font-semibold text-asight-dark">
+                        {c.kpis.lastActivity ? formatDate(c.kpis.lastActivity) : '—'}
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {view === 'trafic' && clients && clients.length > 0 && (
           <TrafficManagerView
             clients={clients}
@@ -286,6 +346,12 @@ export function CreativeDashboard() {
 
         {view === 'clients' && client && (
           <>
+            <button
+              onClick={() => setSelectedClient(null)}
+              className="mb-3 font-body text-sm font-semibold text-asight-violet hover:underline"
+            >
+              ← Tous les clients
+            </button>
             <div className="mb-1 flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h1 className="font-heading text-2xl font-bold text-asight-dark">
@@ -296,12 +362,24 @@ export function CreativeDashboard() {
                   validation
                 </p>
               </div>
-              <button
-                onClick={() => setNewCycleOpen(true)}
-                className="rounded-full border-2 border-asight-violet px-5 py-2.5 font-body text-sm font-semibold text-asight-violet transition-colors hover:bg-asight-lavande"
-              >
-                + Lancer un nouveau cycle
-              </button>
+              <div className="flex items-center gap-3">
+                {sortedBatches.length > 0 && (
+                  <a
+                    href={`/portal/${sortedBatches[0].token}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-full border-2 border-asight-violet px-5 py-2.5 font-body text-sm font-semibold text-asight-violet transition-colors hover:bg-asight-lavande"
+                  >
+                    Voir l&apos;espace client →
+                  </a>
+                )}
+                <button
+                  onClick={() => setNewCycleOpen(true)}
+                  className="rounded-full bg-asight-violet px-5 py-2.5 font-body text-sm font-semibold text-white transition-colors hover:bg-asight-violet-dark"
+                >
+                  + Lancer un nouveau cycle
+                </button>
+              </div>
             </div>
 
             <div className="mb-8 mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
