@@ -201,6 +201,14 @@ export function AdminDashboard() {
                 >
                   Ouvrir
                 </a>
+                <a
+                  href={`/portal/${session.token}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-full bg-asight-lavande px-4 py-1.5 font-body text-sm font-semibold text-asight-dark transition-colors hover:bg-asight-lavande-alt"
+                >
+                  Vue client
+                </a>
               </div>
             </li>
           ))}

@@ -37,7 +37,13 @@ export function ClientPortal({ client }: { client: ClientOverview }) {
 
   return (
     <main className="min-h-screen bg-white">
-      <div className="bg-gradient-to-br from-asight-violet to-asight-violet-dark px-6 py-14 text-center">
+      <div className="relative bg-gradient-to-br from-asight-violet to-asight-violet-dark px-6 py-14 text-center">
+        <a
+          href="/creative"
+          className="absolute right-4 top-4 font-body text-xs font-semibold text-white/50 transition-colors hover:text-white/80"
+        >
+          Espace créatif →
+        </a>
         <Logo variant="white" />
         <h1 className="mt-6 font-heading text-3xl font-bold text-white sm:text-4xl">
           Bienvenue, {client.clientName}
