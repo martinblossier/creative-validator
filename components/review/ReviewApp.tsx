@@ -195,16 +195,18 @@ export function ReviewApp({ token }: { token: string }) {
           <button
             onClick={handleRejectClick}
             disabled={submitting}
-            className="flex-1 rounded-full bg-asight-red px-6 py-4 font-body text-lg font-semibold text-white shadow-lg shadow-asight-red/30 transition-all duration-150 hover:scale-[1.03] hover:opacity-95 hover:shadow-xl active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
+            className="flex flex-1 items-center justify-center gap-2 rounded-2xl border-2 border-asight-red bg-white px-6 py-4 font-body text-base font-bold uppercase tracking-wide text-asight-red shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-asight-red hover:text-white hover:shadow-lg hover:shadow-asight-red/30 active:translate-y-0 active:scale-95 disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:scale-100 disabled:hover:bg-white disabled:hover:text-asight-red"
           >
-            🔄 À retravailler
+            <span className="text-xl">🔄</span>
+            À retravailler
           </button>
           <button
             onClick={handleValidate}
             disabled={submitting}
-            className="flex-1 rounded-full bg-asight-green px-6 py-4 font-body text-lg font-semibold text-asight-dark shadow-lg shadow-asight-green/40 transition-all duration-150 hover:scale-[1.03] hover:opacity-95 hover:shadow-xl active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
+            className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-to-b from-[#B4FBAB] to-asight-green px-6 py-4 font-body text-base font-bold uppercase tracking-wide text-asight-dark shadow-lg shadow-asight-green/40 ring-1 ring-inset ring-white/60 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-asight-green/50 active:translate-y-0 active:scale-95 disabled:opacity-50 disabled:hover:translate-y-0"
           >
-            ✅ Valider
+            <span className="text-xl">✅</span>
+            Valider
           </button>
         </div>
       </div>
