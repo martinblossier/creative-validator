@@ -86,7 +86,12 @@ export async function POST(req: NextRequest) {
         sourceToken: session.token,
         client: session.clientName,
         creasProduites: batchRows.length,
-        total: meta?.recurrence === 'one_shot' ? meta.value : undefined,
+        total:
+          meta?.recurrence === 'one_shot'
+            ? meta.value
+            : meta?.recurrence === 'recurrent'
+              ? meta.mrr
+              : undefined,
       });
     }
 

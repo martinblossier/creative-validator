@@ -94,15 +94,20 @@ export function NewCycleModal({
         {newUrl ? (
           <div className="rounded-xl border-t-4 border-asight-violet bg-asight-lavande p-4">
             <p className="mb-2 font-body text-sm font-semibold text-asight-dark">
-              Lien à partager avec le client :
+              Lien de validation à partager avec le client :
             </p>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <code className="flex-1 break-all rounded-lg bg-white px-4 py-3 font-body text-sm text-asight-violet">
-                {newUrl}
-              </code>
+            <div className="flex gap-3">
+              <a
+                href={newUrl ?? '#'}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 rounded-full bg-asight-violet px-5 py-2.5 text-center font-body text-sm font-semibold text-white transition-colors hover:bg-asight-violet-dark"
+              >
+                Ouvrir →
+              </a>
               <button
                 onClick={copyUrl}
-                className="whitespace-nowrap rounded-full bg-asight-violet px-5 py-2.5 font-body text-sm font-semibold text-white transition-colors hover:bg-asight-violet-dark"
+                className="flex-1 rounded-full border-2 border-asight-violet px-5 py-2.5 font-body text-sm font-semibold text-asight-violet transition-colors hover:bg-white"
               >
                 {copied ? 'Copié !' : 'Copier'}
               </button>
@@ -111,13 +116,18 @@ export function NewCycleModal({
             <p className="mb-2 mt-4 font-body text-sm font-semibold text-asight-dark">
               Portail client (vue d&apos;ensemble tous batchs) :
             </p>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <code className="flex-1 break-all rounded-lg bg-white px-4 py-3 font-body text-sm text-asight-violet">
-                {newPortalUrl}
-              </code>
+            <div className="flex gap-3">
+              <a
+                href={newPortalUrl ?? '#'}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 rounded-full bg-asight-violet px-5 py-2.5 text-center font-body text-sm font-semibold text-white transition-colors hover:bg-asight-violet-dark"
+              >
+                Ouvrir →
+              </a>
               <button
                 onClick={copyPortalUrl}
-                className="whitespace-nowrap rounded-full border-2 border-asight-violet px-5 py-2.5 font-body text-sm font-semibold text-asight-violet transition-colors hover:bg-white"
+                className="flex-1 rounded-full border-2 border-asight-violet px-5 py-2.5 font-body text-sm font-semibold text-asight-violet transition-colors hover:bg-white"
               >
                 {copiedPortal ? 'Copié !' : 'Copier'}
               </button>

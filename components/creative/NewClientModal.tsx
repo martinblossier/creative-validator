@@ -22,6 +22,7 @@ export function NewClientModal({
   const [recurrence, setRecurrence] = useState<Recurrence | ''>('');
   const [frequency, setFrequency] = useState<Frequency>('monthly');
   const [referenceDate, setReferenceDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [mrr, setMrr] = useState('');
   const [value, setValue] = useState('');
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,6 +45,11 @@ export function NewClientModal({
       return;
     }
 
+    if (recurrence === 'recurrent' && (!mrr || Number(mrr) <= 0)) {
+      setError('Merci de préciser le MRR de ce client.');
+      return;
+    }
+
     setCreating(true);
 
     try {
@@ -54,7 +60,7 @@ export function NewClientModal({
           clientName,
           driveFolderUrl,
           recurrence,
-          ...(recurrence === 'recurrent' ? { frequency, referenceDate } : {}),
+          ...(recurrence === 'recurrent' ? { frequency, referenceDate, mrr: Number(mrr) } : {}),
           ...(recurrence === 'one_shot' ? { value: Number(value) } : {}),
         }),
       });
@@ -108,15 +114,20 @@ export function NewClientModal({
         {newUrl ? (
           <div className="rounded-xl border-t-4 border-asight-violet bg-asight-lavande p-4">
             <p className="mb-2 font-body text-sm font-semibold text-asight-dark">
-              Lien à partager avec le client :
+              Lien de validation à partager avec le client :
             </p>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <code className="flex-1 break-all rounded-lg bg-white px-4 py-3 font-body text-sm text-asight-violet">
-                {newUrl}
-              </code>
+            <div className="flex gap-3">
+              <a
+                href={newUrl ?? '#'}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 rounded-full bg-asight-violet px-5 py-2.5 text-center font-body text-sm font-semibold text-white transition-colors hover:bg-asight-violet-dark"
+              >
+                Ouvrir →
+              </a>
               <button
                 onClick={copyUrl}
-                className="whitespace-nowrap rounded-full bg-asight-violet px-5 py-2.5 font-body text-sm font-semibold text-white transition-colors hover:bg-asight-violet-dark"
+                className="flex-1 rounded-full border-2 border-asight-violet px-5 py-2.5 font-body text-sm font-semibold text-asight-violet transition-colors hover:bg-white"
               >
                 {copied ? 'Copié !' : 'Copier'}
               </button>
@@ -125,13 +136,18 @@ export function NewClientModal({
             <p className="mb-2 mt-4 font-body text-sm font-semibold text-asight-dark">
               Portail client (vue d&apos;ensemble tous batchs) :
             </p>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <code className="flex-1 break-all rounded-lg bg-white px-4 py-3 font-body text-sm text-asight-violet">
-                {newPortalUrl}
-              </code>
+            <div className="flex gap-3">
+              <a
+                href={newPortalUrl ?? '#'}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 rounded-full bg-asight-violet px-5 py-2.5 text-center font-body text-sm font-semibold text-white transition-colors hover:bg-asight-violet-dark"
+              >
+                Ouvrir →
+              </a>
               <button
                 onClick={copyPortalUrl}
-                className="whitespace-nowrap rounded-full border-2 border-asight-violet px-5 py-2.5 font-body text-sm font-semibold text-asight-violet transition-colors hover:bg-white"
+                className="flex-1 rounded-full border-2 border-asight-violet px-5 py-2.5 font-body text-sm font-semibold text-asight-violet transition-colors hover:bg-white"
               >
                 {copiedPortal ? 'Copié !' : 'Copier'}
               </button>
@@ -233,6 +249,21 @@ export function NewClientModal({
                     className="rounded-lg border border-asight-muted bg-white px-4 py-3 font-body text-asight-dark outline-none focus:ring-2 focus:ring-asight-violet"
                   />
                 </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="font-body text-sm font-semibold text-asight-dark">
+                    MRR (€)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={mrr}
+                    onChange={(e) => setMrr(e.target.value)}
+                    placeholder="Ex : 1500"
+                    required
+                    className="rounded-lg border border-asight-muted bg-white px-4 py-3 font-body text-asight-dark outline-none focus:ring-2 focus:ring-asight-violet"
+                  />
+                </div>
                 <p className="font-body text-xs text-asight-dark/50">
                   Sert de point de départ pour projeter les prochaines dates de production dans
                   l&apos;agenda.
@@ -270,7 +301,8 @@ export function NewClientModal({
                 disabled={
                   creating ||
                   !recurrence ||
-                  (recurrence === 'one_shot' && (!value || Number(value) <= 0))
+                  (recurrence === 'one_shot' && (!value || Number(value) <= 0)) ||
+                  (recurrence === 'recurrent' && (!mrr || Number(mrr) <= 0))
                 }
                 className="rounded-full bg-asight-violet px-6 py-3 font-body font-semibold text-white transition-colors hover:bg-asight-violet-dark disabled:opacity-50"
               >

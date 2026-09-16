@@ -48,13 +48,20 @@ export async function POST(req: NextRequest) {
     if (recurrence === 'recurrent') {
       const frequency = body?.frequency;
       const referenceDate = typeof body?.referenceDate === 'string' ? body.referenceDate : '';
+      const mrr = Number(body?.mrr);
       if (!FREQUENCIES.includes(frequency) || !referenceDate) {
         return NextResponse.json(
           { error: 'Merci de préciser la fréquence et la date de référence pour un client récurrent.' },
           { status: 400 }
         );
       }
-      await setClientMeta(clientName, { recurrence, frequency, referenceDate });
+      if (!Number.isFinite(mrr) || mrr <= 0) {
+        return NextResponse.json(
+          { error: 'Merci de préciser le MRR pour un client récurrent.' },
+          { status: 400 }
+        );
+      }
+      await setClientMeta(clientName, { recurrence, frequency, referenceDate, mrr });
     } else {
       const value = Number(body?.value);
       if (!Number.isFinite(value) || value <= 0) {

@@ -7,6 +7,7 @@ export type ClientMeta = {
   recurrence: Recurrence;
   frequency?: Frequency; // set only when recurrence === 'recurrent'
   referenceDate?: string; // YYYY-MM-DD, anchor date for the recurrence cadence
+  mrr?: number; // €, set only when recurrence === 'recurrent'
   value?: number; // €, set only when recurrence === 'one_shot'
 };
 
