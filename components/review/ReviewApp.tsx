@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { AnimatePresence } from 'framer-motion';
 import { Logo } from '@/components/Logo';
 import { ProgressBar } from '@/components/review/ProgressBar';
 import { CreativeCard } from '@/components/review/CreativeCard';
@@ -174,18 +173,16 @@ export function ReviewApp({ token }: { token: string }) {
       </div>
 
       <div className="flex flex-1 flex-col items-center justify-center gap-6">
-        <div className="relative w-full max-w-lg">
-          <AnimatePresence mode="popLayout" initial={false}>
-            {currentCreative && (
-              <CreativeCard
-                key={currentCreative.id}
-                creative={currentCreative}
-                onSwipeValidate={handleValidate}
-                onSwipeReject={handleRejectClick}
-                disabled={submitting}
-              />
-            )}
-          </AnimatePresence>
+        <div className="w-full max-w-lg">
+          {currentCreative && (
+            <CreativeCard
+              key={currentCreative.id}
+              creative={currentCreative}
+              onSwipeValidate={handleValidate}
+              onSwipeReject={handleRejectClick}
+              disabled={submitting}
+            />
+          )}
         </div>
 
         {submitError && (
