@@ -124,6 +124,14 @@ export function CreativeDashboard() {
     sortedBatches[0] ??
     null;
 
+  // A new cycle only makes sense once the client has finished commenting on
+  // the current batch (every creative decided) — otherwise V(n) is still
+  // open while V(n+1) would already exist, breaking the sequence.
+  const latestBatch = sortedBatches[0] ?? null;
+  const canStartNewCycle = Boolean(
+    latestBatch && latestBatch.totalCreatives > 0 && latestBatch.rows.length >= latestBatch.totalCreatives
+  );
+
   return (
     <div className="flex min-h-screen bg-white">
       <aside className="hidden w-72 flex-shrink-0 flex-col border-r border-asight-lavande bg-gradient-to-b from-white to-asight-lavande/30 lg:flex">
@@ -388,23 +396,30 @@ export function CreativeDashboard() {
                   validation
                 </p>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 {sortedBatches.length > 0 && (
                   <a
                     href={`/portal/${sortedBatches[0].token}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
                     className="rounded-full border-2 border-asight-violet px-5 py-2.5 font-body text-sm font-semibold text-asight-violet transition-colors hover:bg-asight-lavande"
                   >
                     Voir l&apos;espace client →
                   </a>
                 )}
-                <button
-                  onClick={() => setNewCycleOpen(true)}
-                  className="rounded-full bg-asight-violet px-5 py-2.5 font-body text-sm font-semibold text-white transition-colors hover:bg-asight-violet-dark"
-                >
-                  + Lancer un nouveau cycle
-                </button>
+                {canStartNewCycle ? (
+                  <button
+                    onClick={() => setNewCycleOpen(true)}
+                    className="rounded-full bg-asight-violet px-5 py-2.5 font-body text-sm font-semibold text-white transition-colors hover:bg-asight-violet-dark"
+                  >
+                    + Lancer un nouveau cycle
+                  </button>
+                ) : (
+                  <span
+                    title="Disponible une fois que le client a terminé de commenter le cycle en cours"
+                    className="rounded-full bg-asight-lavande/60 px-5 py-2.5 font-body text-sm font-semibold text-asight-dark/40"
+                  >
+                    En attente des retours du client
+                  </span>
+                )}
                 <button
                   onClick={() => setDeleteClientTarget(client.clientName)}
                   title="Supprimer ce client"

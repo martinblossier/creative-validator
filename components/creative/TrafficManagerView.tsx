@@ -370,8 +370,6 @@ export function TrafficManagerView({
           {batches.length > 0 && (
             <a
               href={`/portal/${batches[batches.length - 1].token}`}
-              target="_blank"
-              rel="noopener noreferrer"
               className="rounded-full border-2 border-asight-violet px-5 py-2.5 font-body text-sm font-semibold text-asight-violet transition-colors hover:bg-asight-lavande"
             >
               Voir l&apos;espace client →
