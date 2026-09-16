@@ -51,6 +51,7 @@ export async function POST(req: NextRequest) {
       comment: status === STATUS_VALIDATED ? '' : comment,
       driveLink: `https://drive.google.com/file/d/${fileId}/view`,
       decisionDate: formatDecisionDate(new Date()),
+      batch: `V${session.batchNumber}`,
     });
 
     await incrementReviewedCount(token);

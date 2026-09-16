@@ -8,16 +8,27 @@ export type Session = {
   createdAt: string; // ISO timestamp
   totalCreatives: number | null;
   reviewedCount: number;
+  batchNumber: number;
 };
 
 const SESSION_KEY = (token: string) => `session:${token}`;
 const SESSION_INDEX_KEY = 'sessions:index';
+
+/** Legacy sessions created before batch tracking existed default to V1. */
+function normalizeSession(session: Session): Session {
+  return { ...session, batchNumber: session.batchNumber ?? 1 };
+}
 
 export async function createSession(
   clientName: string,
   driveFolderId: string
 ): Promise<Session> {
   const token = nanoid(12);
+  const existingForClient = (await listSessions()).filter(
+    (s) => s.clientName === clientName
+  );
+  const batchNumber = existingForClient.length + 1;
+
   const session: Session = {
     token,
     clientName,
@@ -25,6 +36,7 @@ export async function createSession(
     createdAt: new Date().toISOString(),
     totalCreatives: null,
     reviewedCount: 0,
+    batchNumber,
   };
 
   await kv.set(SESSION_KEY(token), session);
@@ -35,7 +47,7 @@ export async function createSession(
 
 export async function getSession(token: string): Promise<Session | null> {
   const session = await kv.get<Session>(SESSION_KEY(token));
-  return session ?? null;
+  return session ? normalizeSession(session) : null;
 }
 
 export async function listSessions(): Promise<Session[]> {
@@ -48,6 +60,7 @@ export async function listSessions(): Promise<Session[]> {
 
   return sessions
     .filter((s): s is Session => s != null)
+    .map(normalizeSession)
     .sort(
       (a, b) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()

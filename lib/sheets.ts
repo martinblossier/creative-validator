@@ -1,5 +1,6 @@
 import { google, sheets_v4 } from 'googleapis';
 import { getGoogleAuth } from './google-auth';
+import { STATUS_VALIDATED, STATUS_REJECTED } from './status';
 
 const HEADERS = [
   'Nom de la créa',
@@ -8,10 +9,10 @@ const HEADERS = [
   'Commentaire',
   'Lien Drive',
   'Date de décision',
+  'Batch',
 ];
 
-export const STATUS_VALIDATED = 'Validé';
-export const STATUS_REJECTED = 'À retravailler';
+export { STATUS_VALIDATED, STATUS_REJECTED };
 
 export type SheetRow = {
   creativeName: string;
@@ -20,7 +21,16 @@ export type SheetRow = {
   comment: string;
   driveLink: string;
   decisionDate: string; // DD/MM/YYYY HH:mm
+  batch: string; // e.g. "V1"
 };
+
+/** Parses a "DD/MM/YYYY HH:mm" string back into a Date, or null if invalid. */
+export function parseDecisionDate(value: string): Date | null {
+  const match = value.match(/^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2})$/);
+  if (!match) return null;
+  const [, dd, mm, yyyy, hh, min] = match;
+  return new Date(Number(yyyy), Number(mm) - 1, Number(dd), Number(hh), Number(min));
+}
 
 function getSheetsClient() {
   const auth = getGoogleAuth();
@@ -51,6 +61,7 @@ async function ensureClientTab(
   );
 
   if (existing?.properties?.sheetId != null) {
+    await ensureBatchColumnHeader(sheets, spreadsheetId, tabName);
     return existing.properties.sheetId;
   }
 
@@ -80,7 +91,7 @@ async function ensureClientTab(
   // Write header row
   await sheets.spreadsheets.values.update({
     spreadsheetId,
-    range: `${tabName}!A1:F1`,
+    range: `${tabName}!A1:G1`,
     valueInputOption: 'RAW',
     requestBody: { values: [HEADERS] },
   });
@@ -183,6 +194,31 @@ function hexToRgb(hex: string) {
 }
 
 /**
+ * Non-destructive migration for tabs created before the "Batch" column
+ * existed: only labels column G if it's still blank. Never touches
+ * existing data in A:F, so already-logged rows stay perfectly aligned.
+ */
+async function ensureBatchColumnHeader(
+  sheets: sheets_v4.Sheets,
+  spreadsheetId: string,
+  tabName: string
+): Promise<void> {
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: `${tabName}!G1`,
+  });
+  const hasHeader = Boolean(res.data.values?.[0]?.[0]?.toString().trim());
+  if (hasHeader) return;
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId,
+    range: `${tabName}!G1`,
+    valueInputOption: 'RAW',
+    requestBody: { values: [['Batch']] },
+  });
+}
+
+/**
  * Appends a review decision row to the client's tab, creating the tab
  * (with header row + conditional formatting) if needed.
  */
@@ -198,7 +234,7 @@ export async function appendReviewRow(
 
   await sheets.spreadsheets.values.append({
     spreadsheetId,
-    range: `${tabName}!A:F`,
+    range: `${tabName}!A:G`,
     valueInputOption: 'USER_ENTERED',
     insertDataOption: 'INSERT_ROWS',
     requestBody: {
@@ -210,10 +246,48 @@ export async function appendReviewRow(
           row.comment,
           row.driveLink,
           row.decisionDate,
+          row.batch,
         ],
       ],
     },
   });
+}
+
+/**
+ * Reads all logged review rows for a client's tab. Returns an empty array
+ * if the tab doesn't exist yet (client with no reviewed creatives).
+ */
+export async function getClientRows(
+  spreadsheetId: string,
+  clientName: string
+): Promise<SheetRow[]> {
+  const sheets = getSheetsClient();
+  const tabName = sanitizeTabName(clientName);
+
+  let values: string[][];
+  try {
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${tabName}!A2:G`,
+    });
+    values = (res.data.values as string[][]) ?? [];
+  } catch (err) {
+    console.error(`Sheets read error for tab "${tabName}":`, err);
+    return [];
+  }
+
+  return values
+    .filter((r) => r[0])
+    .map((r) => ({
+      creativeName: r[0] ?? '',
+      fileName: r[1] ?? '',
+      status:
+        r[2] === STATUS_REJECTED ? STATUS_REJECTED : STATUS_VALIDATED,
+      comment: r[3] ?? '',
+      driveLink: r[4] ?? '',
+      decisionDate: r[5] ?? '',
+      batch: r[6]?.trim() || 'V1',
+    }));
 }
 
 /** Google Sheets tab names can't contain: : \ / ? * [ ] and must be <= 100 chars */
