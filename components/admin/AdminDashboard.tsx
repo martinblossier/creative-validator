@@ -4,13 +4,10 @@ import { useEffect, useState, FormEvent, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Session } from '@/lib/sessions';
 
-function formatDate(iso: string): string {
+function formatMonthYear(iso: string): string {
   const d = new Date(iso);
-  return d.toLocaleDateString('fr-FR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${pad(d.getMonth() + 1)}/${String(d.getFullYear()).slice(-2)}`;
 }
 
 export function AdminDashboard() {
@@ -188,10 +185,7 @@ export function AdminDashboard() {
             >
               <div>
                 <p className="font-heading font-bold text-asight-dark">
-                  {session.clientName}
-                </p>
-                <p className="font-body text-xs text-asight-dark/50">
-                  Créée le {formatDate(session.createdAt)}
+                  {session.clientName} - B{session.batchNumber} - {formatMonthYear(session.createdAt)}
                 </p>
               </div>
 
