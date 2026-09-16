@@ -174,17 +174,19 @@ export function ReviewApp({ token }: { token: string }) {
       </div>
 
       <div className="flex flex-1 flex-col items-center justify-center gap-6">
-        <AnimatePresence mode="popLayout" initial={false}>
-          {currentCreative && (
-            <CreativeCard
-              key={currentCreative.id}
-              creative={currentCreative}
-              onSwipeValidate={handleValidate}
-              onSwipeReject={handleRejectClick}
-              disabled={submitting}
-            />
-          )}
-        </AnimatePresence>
+        <div className="relative w-full max-w-lg">
+          <AnimatePresence mode="popLayout" initial={false}>
+            {currentCreative && (
+              <CreativeCard
+                key={currentCreative.id}
+                creative={currentCreative}
+                onSwipeValidate={handleValidate}
+                onSwipeReject={handleRejectClick}
+                disabled={submitting}
+              />
+            )}
+          </AnimatePresence>
+        </div>
 
         {submitError && (
           <p className="max-w-lg rounded-lg bg-asight-red/10 px-4 py-2 text-center font-body text-sm text-asight-red">
