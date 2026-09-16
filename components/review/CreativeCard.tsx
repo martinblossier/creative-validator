@@ -49,23 +49,20 @@ export function CreativeCard({
         style={{ backgroundColor: overlayColor, opacity: overlayOpacity }}
       />
 
-      <div
-        className="flex items-center justify-center overflow-hidden rounded-lg bg-asight-lavande/40"
-        style={{ minHeight: '50vh' }}
-      >
+      <div className="flex h-[55vh] items-center justify-center overflow-hidden rounded-lg bg-asight-lavande/40">
         {creative.kind === 'image' ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={creative.streamUrl}
             alt={creative.name}
-            className="max-h-[80vh] w-auto object-contain"
+            className="h-full w-auto max-w-full object-contain"
             draggable={false}
           />
         ) : (
           <video
             key={creative.streamUrl}
             src={creative.streamUrl}
-            className="max-h-[80vh] w-auto object-contain"
+            className="h-full w-auto max-w-full object-contain"
             controls
             autoPlay
             muted
