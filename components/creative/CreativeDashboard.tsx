@@ -206,16 +206,7 @@ export function CreativeDashboard() {
         </div>
       </aside>
 
-      <main
-        className="flex-1 overflow-y-auto px-6 py-8 lg:px-10"
-        style={{
-          backgroundImage:
-            'radial-gradient(650px circle at 8% 0%, rgba(90,69,255,0.10), transparent 60%),' +
-            'radial-gradient(600px circle at 100% 12%, rgba(156,246,148,0.14), transparent 55%),' +
-            'radial-gradient(700px circle at 90% 100%, rgba(164,148,247,0.12), transparent 55%)',
-          backgroundColor: '#ffffff',
-        }}
-      >
+      <main className="flex-1 overflow-y-auto bg-white px-6 py-8 lg:px-10">
         <div className="mb-6 flex items-center justify-between lg:hidden">
           <Logo />
           <button
