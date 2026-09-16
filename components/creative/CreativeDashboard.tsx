@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Logo } from '@/components/Logo';
 import { BatchCard } from './BatchCard';
 import { NewCycleForm } from './NewCycleForm';
+import { NewClientModal } from './NewClientModal';
 import type { ClientOverview } from '@/lib/creative';
 
 function formatDate(iso: string): string {
@@ -30,6 +31,7 @@ export function CreativeDashboard() {
   const router = useRouter();
   const [clients, setClients] = useState<ClientOverview[] | null>(null);
   const [selectedClient, setSelectedClient] = useState<string | null>(null);
+  const [newClientOpen, setNewClientOpen] = useState(false);
 
   const load = useCallback(async () => {
     const res = await fetch('/api/creative/clients');
@@ -52,6 +54,12 @@ export function CreativeDashboard() {
     router.refresh();
   }
 
+  async function handleClientCreated(clientName: string) {
+    setNewClientOpen(false);
+    await load();
+    setSelectedClient(clientName);
+  }
+
   const client = clients?.find((c) => c.clientName === selectedClient) ?? null;
   const nextBatchNumber = client
     ? (client.batches[client.batches.length - 1]?.batchNumber ?? 0) + 1
@@ -64,6 +72,12 @@ export function CreativeDashboard() {
           <Logo />
         </div>
         <nav className="flex-1 overflow-y-auto px-3 py-4">
+          <button
+            onClick={() => setNewClientOpen(true)}
+            className="mb-4 w-full rounded-lg border-2 border-dashed border-asight-violet px-3 py-2 font-body text-sm font-semibold text-asight-violet transition-colors hover:bg-asight-lavande"
+          >
+            + Nouveau client
+          </button>
           <p className="mb-2 px-2 font-body text-xs font-semibold uppercase tracking-wide text-asight-dark/40">
             Clients
           </p>
@@ -111,19 +125,27 @@ export function CreativeDashboard() {
           </button>
         </div>
 
-        {clients && clients.length > 0 && (
-          <select
-            value={selectedClient ?? ''}
-            onChange={(e) => setSelectedClient(e.target.value)}
-            className="mb-6 w-full rounded-lg border border-asight-muted px-4 py-2 font-body text-sm lg:hidden"
+        <div className="mb-6 flex flex-col gap-3 lg:hidden">
+          {clients && clients.length > 0 && (
+            <select
+              value={selectedClient ?? ''}
+              onChange={(e) => setSelectedClient(e.target.value)}
+              className="w-full rounded-lg border border-asight-muted px-4 py-2 font-body text-sm"
+            >
+              {clients.map((c) => (
+                <option key={c.clientName} value={c.clientName}>
+                  {c.clientName}
+                </option>
+              ))}
+            </select>
+          )}
+          <button
+            onClick={() => setNewClientOpen(true)}
+            className="w-full rounded-lg border-2 border-dashed border-asight-violet px-3 py-2 font-body text-sm font-semibold text-asight-violet transition-colors hover:bg-asight-lavande"
           >
-            {clients.map((c) => (
-              <option key={c.clientName} value={c.clientName}>
-                {c.clientName}
-              </option>
-            ))}
-          </select>
-        )}
+            + Nouveau client
+          </button>
+        </div>
 
         {clients === null && (
           <p className="font-body text-asight-dark/60">Chargement…</p>
@@ -172,6 +194,13 @@ export function CreativeDashboard() {
           </>
         )}
       </main>
+
+      {newClientOpen && (
+        <NewClientModal
+          onClose={() => setNewClientOpen(false)}
+          onCreated={handleClientCreated}
+        />
+      )}
     </div>
   );
 }
