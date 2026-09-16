@@ -8,6 +8,7 @@ import { NewCycleModal } from './NewCycleModal';
 import { NewClientModal } from './NewClientModal';
 import { TrafficManagerView } from './TrafficManagerView';
 import { BatchTrackerView } from './BatchTrackerView';
+import { AgendaView } from './AgendaView';
 import type { ClientOverview } from '@/lib/creative';
 import type { TeamMember, TeamRole } from '@/lib/team-store';
 
@@ -30,7 +31,7 @@ function KpiCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-type View = 'clients' | 'trafic' | 'tracker';
+type View = 'clients' | 'trafic' | 'tracker' | 'agenda';
 
 export function CreativeDashboard() {
   const router = useRouter();
@@ -142,6 +143,16 @@ export function CreativeDashboard() {
             >
               Batch Tracker
             </button>
+            <button
+              onClick={() => setView('agenda')}
+              className={`flex-1 rounded-md px-2 py-1.5 font-body text-xs font-semibold transition-colors ${
+                view === 'agenda'
+                  ? 'bg-white text-asight-dark shadow-sm'
+                  : 'text-asight-dark/50 hover:text-asight-dark'
+              }`}
+            >
+              Agenda
+            </button>
           </div>
 
           <button
@@ -232,6 +243,14 @@ export function CreativeDashboard() {
           >
             Batch Tracker
           </button>
+          <button
+            onClick={() => setView('agenda')}
+            className={`flex-1 rounded-md px-2 py-1.5 font-body text-xs font-semibold transition-colors ${
+              view === 'agenda' ? 'bg-white text-asight-dark shadow-sm' : 'text-asight-dark/50'
+            }`}
+          >
+            Agenda
+          </button>
         </div>
 
         {view === 'clients' && (
@@ -261,11 +280,11 @@ export function CreativeDashboard() {
           </div>
         )}
 
-        {view !== 'tracker' && clients === null && (
+        {(view === 'clients' || view === 'trafic') && clients === null && (
           <p className="font-body text-asight-dark/60">Chargement…</p>
         )}
 
-        {view !== 'tracker' && clients !== null && clients.length === 0 && (
+        {(view === 'clients' || view === 'trafic') && clients !== null && clients.length === 0 && (
           <p className="font-body text-asight-dark/60">
             Aucun client pour le moment. Créez une session depuis le panneau admin.
           </p>
@@ -281,6 +300,8 @@ export function CreativeDashboard() {
         )}
 
         {view === 'tracker' && <BatchTrackerView />}
+
+        {view === 'agenda' && <AgendaView />}
 
         {view === 'clients' && client && (
           <>

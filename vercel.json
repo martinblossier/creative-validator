@@ -9,5 +9,11 @@
     "app/api/**/*.ts": {
       "maxDuration": 30
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/agenda-check",
+      "schedule": "0 8 * * *"
+    }
+  ]
 }

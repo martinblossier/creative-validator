@@ -1,8 +1,13 @@
 import { kv } from '@vercel/kv';
 
 export type Recurrence = 'recurrent' | 'one_shot';
+export type Frequency = 'weekly' | 'monthly' | 'bimonthly' | 'quarterly';
 
-export type ClientMeta = { recurrence: Recurrence };
+export type ClientMeta = {
+  recurrence: Recurrence;
+  frequency?: Frequency; // set only when recurrence === 'recurrent'
+  referenceDate?: string; // YYYY-MM-DD, anchor date for the recurrence cadence
+};
 
 const META_KEY = (clientName: string) => `creative:client_meta:${clientName}`;
 

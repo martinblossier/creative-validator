@@ -1,7 +1,14 @@
 'use client';
 
 import { useState, FormEvent } from 'react';
-import type { Recurrence } from '@/lib/client-meta';
+import type { Recurrence, Frequency } from '@/lib/client-meta';
+
+const FREQUENCY_LABELS: Record<Frequency, string> = {
+  weekly: 'Hebdomadaire',
+  monthly: 'Mensuel',
+  bimonthly: 'Bimestriel',
+  quarterly: 'Trimestriel',
+};
 
 export function NewClientModal({
   onClose,
@@ -13,6 +20,8 @@ export function NewClientModal({
   const [clientName, setClientName] = useState('');
   const [driveFolderUrl, setDriveFolderUrl] = useState('');
   const [recurrence, setRecurrence] = useState<Recurrence | ''>('');
+  const [frequency, setFrequency] = useState<Frequency>('monthly');
+  const [referenceDate, setReferenceDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [newUrl, setNewUrl] = useState<string | null>(null);
@@ -33,7 +42,12 @@ export function NewClientModal({
       const res = await fetch('/api/creative/sessions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clientName, driveFolderUrl, recurrence }),
+        body: JSON.stringify({
+          clientName,
+          driveFolderUrl,
+          recurrence,
+          ...(recurrence === 'recurrent' ? { frequency, referenceDate } : {}),
+        }),
       });
       const data = await res.json();
 
@@ -155,6 +169,43 @@ export function NewClientModal({
                 </button>
               </div>
             </div>
+
+            {recurrence === 'recurrent' && (
+              <div className="flex flex-col gap-3 rounded-lg bg-asight-lavande/40 p-3">
+                <div className="flex flex-col gap-1.5">
+                  <label className="font-body text-sm font-semibold text-asight-dark">
+                    Fréquence
+                  </label>
+                  <select
+                    value={frequency}
+                    onChange={(e) => setFrequency(e.target.value as Frequency)}
+                    className="rounded-lg border border-asight-muted bg-white px-4 py-3 font-body text-asight-dark outline-none focus:ring-2 focus:ring-asight-violet"
+                  >
+                    {(Object.keys(FREQUENCY_LABELS) as Frequency[]).map((f) => (
+                      <option key={f} value={f}>
+                        {FREQUENCY_LABELS[f]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="font-body text-sm font-semibold text-asight-dark">
+                    Date de référence
+                  </label>
+                  <input
+                    type="date"
+                    value={referenceDate}
+                    onChange={(e) => setReferenceDate(e.target.value)}
+                    required
+                    className="rounded-lg border border-asight-muted bg-white px-4 py-3 font-body text-asight-dark outline-none focus:ring-2 focus:ring-asight-violet"
+                  />
+                </div>
+                <p className="font-body text-xs text-asight-dark/50">
+                  Sert de point de départ pour projeter les prochaines dates de production dans
+                  l&apos;agenda.
+                </p>
+              </div>
+            )}
 
             {error && (
               <p className="rounded-lg bg-asight-red/10 px-3 py-2 font-body text-sm text-asight-red">

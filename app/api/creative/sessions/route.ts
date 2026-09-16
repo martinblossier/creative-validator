@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { isCreativeAuthenticated } from '@/lib/creative-auth';
 import { createSession } from '@/lib/sessions';
 import { extractFolderId } from '@/lib/drive';
-import { getClientMeta, setClientMeta } from '@/lib/client-meta';
+import { getClientMeta, setClientMeta, type Frequency } from '@/lib/client-meta';
+
+const FREQUENCIES: Frequency[] = ['weekly', 'monthly', 'bimonthly', 'quarterly'];
 
 export async function POST(req: NextRequest) {
   if (!isCreativeAuthenticated()) {
@@ -40,7 +42,20 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    await setClientMeta(clientName, { recurrence });
+
+    if (recurrence === 'recurrent') {
+      const frequency = body?.frequency;
+      const referenceDate = typeof body?.referenceDate === 'string' ? body.referenceDate : '';
+      if (!FREQUENCIES.includes(frequency) || !referenceDate) {
+        return NextResponse.json(
+          { error: 'Merci de préciser la fréquence et la date de référence pour un client récurrent.' },
+          { status: 400 }
+        );
+      }
+      await setClientMeta(clientName, { recurrence, frequency, referenceDate });
+    } else {
+      await setClientMeta(clientName, { recurrence });
+    }
   }
 
   const session = await createSession(clientName, driveFolderId);
