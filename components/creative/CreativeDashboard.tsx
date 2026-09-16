@@ -114,7 +114,7 @@ export function CreativeDashboard() {
 
   return (
     <div className="flex min-h-screen bg-white">
-      <aside className="hidden w-72 flex-shrink-0 flex-col border-r border-asight-lavande bg-white lg:flex">
+      <aside className="hidden w-72 flex-shrink-0 flex-col border-r border-asight-lavande bg-gradient-to-b from-white to-asight-lavande/30 lg:flex">
         <div className="border-b border-asight-lavande px-5 py-5">
           <Logo />
         </div>
@@ -206,7 +206,16 @@ export function CreativeDashboard() {
         </div>
       </aside>
 
-      <main className="flex-1 overflow-y-auto px-6 py-8 lg:px-10">
+      <main
+        className="flex-1 overflow-y-auto px-6 py-8 lg:px-10"
+        style={{
+          backgroundImage:
+            'radial-gradient(650px circle at 8% 0%, rgba(90,69,255,0.10), transparent 60%),' +
+            'radial-gradient(600px circle at 100% 12%, rgba(156,246,148,0.14), transparent 55%),' +
+            'radial-gradient(700px circle at 90% 100%, rgba(164,148,247,0.12), transparent 55%)',
+          backgroundColor: '#ffffff',
+        }}
+      >
         <div className="mb-6 flex items-center justify-between lg:hidden">
           <Logo />
           <button
