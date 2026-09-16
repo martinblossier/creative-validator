@@ -26,7 +26,9 @@ export function NewClientModal({
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [newUrl, setNewUrl] = useState<string | null>(null);
+  const [newPortalUrl, setNewPortalUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [copiedPortal, setCopiedPortal] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -65,6 +67,7 @@ export function NewClientModal({
       }
 
       setNewUrl(`${window.location.origin}/review/${data.session.token}`);
+      setNewPortalUrl(`${window.location.origin}/portal/${data.session.token}`);
     } catch {
       setError('Une erreur est survenue. Réessayez.');
     } finally {
@@ -77,6 +80,13 @@ export function NewClientModal({
     navigator.clipboard.writeText(newUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  function copyPortalUrl() {
+    if (!newPortalUrl) return;
+    navigator.clipboard.writeText(newPortalUrl);
+    setCopiedPortal(true);
+    setTimeout(() => setCopiedPortal(false), 2000);
   }
 
   return (
@@ -111,6 +121,22 @@ export function NewClientModal({
                 {copied ? 'Copié !' : 'Copier'}
               </button>
             </div>
+
+            <p className="mb-2 mt-4 font-body text-sm font-semibold text-asight-dark">
+              Portail client (vue d&apos;ensemble tous batchs) :
+            </p>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <code className="flex-1 break-all rounded-lg bg-white px-4 py-3 font-body text-sm text-asight-violet">
+                {newPortalUrl}
+              </code>
+              <button
+                onClick={copyPortalUrl}
+                className="whitespace-nowrap rounded-full border-2 border-asight-violet px-5 py-2.5 font-body text-sm font-semibold text-asight-violet transition-colors hover:bg-white"
+              >
+                {copiedPortal ? 'Copié !' : 'Copier'}
+              </button>
+            </div>
+
             <button
               onClick={() => onCreated(clientName.trim())}
               className="mt-4 w-full rounded-full bg-asight-violet px-6 py-3 font-body font-semibold text-white transition-colors hover:bg-asight-violet-dark"
