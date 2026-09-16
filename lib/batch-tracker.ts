@@ -222,6 +222,19 @@ export async function autoCreateBatchTrackerRow(
   });
 }
 
+/** Deletes every Batch Tracker row for a given client. Returns how many were removed. */
+export async function deleteBatchTrackerRowsForClient(
+  spreadsheetId: string,
+  client: string
+): Promise<number> {
+  const rows = await getBatchTrackerRows(spreadsheetId);
+  const matching = rows.filter((r) => r.client === client);
+  for (const row of matching) {
+    await deleteBatchTrackerRow(spreadsheetId, row.id);
+  }
+  return matching.length;
+}
+
 export async function deleteBatchTrackerRow(spreadsheetId: string, id: string): Promise<boolean> {
   const sheets = getSheetsClient();
   const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId });

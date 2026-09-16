@@ -16,3 +16,7 @@ export async function setAgendaOverride(
   current[originalDate] = overrideDate;
   await kv.set(KEY(clientName), current);
 }
+
+export async function deleteAgendaOverrides(clientName: string): Promise<void> {
+  await kv.del(KEY(clientName));
+}

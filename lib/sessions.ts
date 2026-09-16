@@ -93,3 +93,16 @@ export async function incrementReviewedCount(token: string): Promise<void> {
   if (!existing) return;
   await updateSession(token, { reviewedCount: existing.reviewedCount + 1 });
 }
+
+export async function deleteSession(token: string): Promise<void> {
+  await kv.del(SESSION_KEY(token));
+  await kv.srem(SESSION_INDEX_KEY, token);
+}
+
+/** Deletes every session (every cycle) belonging to a client. Returns how many were removed. */
+export async function deleteSessionsForClient(clientName: string): Promise<number> {
+  const sessions = await listSessions();
+  const matching = sessions.filter((s) => s.clientName === clientName);
+  await Promise.all(matching.map((s) => deleteSession(s.token)));
+  return matching.length;
+}

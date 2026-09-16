@@ -440,3 +440,25 @@ export async function setBatchDeadline(
 function sanitizeTabName(name: string): string {
   return name.replace(/[:\\/?*[\]]/g, ' ').trim().slice(0, 100) || 'Client';
 }
+
+/**
+ * Permanently deletes a client's tab (and every review row it holds).
+ * No-ops if the tab doesn't exist. Irreversible.
+ */
+export async function deleteClientTab(spreadsheetId: string, clientName: string): Promise<boolean> {
+  const sheets = getSheetsClient();
+  const tabName = sanitizeTabName(clientName);
+
+  const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId });
+  const tab = spreadsheet.data.sheets?.find((s) => s.properties?.title === tabName);
+  if (tab?.properties?.sheetId == null) return false;
+
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId,
+    requestBody: {
+      requests: [{ deleteSheet: { sheetId: tab.properties.sheetId } }],
+    },
+  });
+
+  return true;
+}

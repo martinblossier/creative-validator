@@ -6,6 +6,7 @@ import { Logo } from '@/components/Logo';
 import { BatchPanel } from './BatchPanel';
 import { NewCycleModal } from './NewCycleModal';
 import { NewClientModal } from './NewClientModal';
+import { DeleteClientModal } from './DeleteClientModal';
 import { TrafficManagerView } from './TrafficManagerView';
 import { BatchTrackerView } from './BatchTrackerView';
 import { AgendaView } from './AgendaView';
@@ -47,6 +48,7 @@ export function CreativeDashboard() {
   const [selectedBatchToken, setSelectedBatchToken] = useState<string | null>(null);
   const [newClientOpen, setNewClientOpen] = useState(false);
   const [newCycleOpen, setNewCycleOpen] = useState(false);
+  const [deleteClientTarget, setDeleteClientTarget] = useState<string | null>(null);
   const [view, setView] = useState<View>('clients');
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
 
@@ -91,6 +93,12 @@ export function CreativeDashboard() {
   function goToView(v: View) {
     setView(v);
     if (v === 'clients') setSelectedClient(null);
+  }
+
+  function handleClientDeleted() {
+    setDeleteClientTarget(null);
+    setSelectedClient(null);
+    load();
   }
 
   async function handleClientCreated(clientName: string) {
@@ -284,20 +292,38 @@ export function CreativeDashboard() {
             </p>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {clients.map((c) => (
-                <button
+                <div
                   key={c.clientName}
+                  role="button"
+                  tabIndex={0}
                   onClick={() => {
                     setSelectedClient(c.clientName);
                     setSelectedBatchToken(null);
                   }}
-                  className="flex flex-col gap-3 rounded-2xl border border-asight-lavande bg-white p-5 text-left shadow-card transition-all hover:-translate-y-0.5 hover:shadow-lg"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      setSelectedClient(c.clientName);
+                      setSelectedBatchToken(null);
+                    }
+                  }}
+                  className="group relative flex cursor-pointer flex-col gap-3 rounded-2xl border border-asight-lavande bg-white p-5 text-left shadow-card transition-all hover:-translate-y-0.5 hover:shadow-lg"
                 >
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeleteClientTarget(c.clientName);
+                    }}
+                    title="Supprimer ce client"
+                    className="absolute right-3 top-3 rounded-full p-1 text-asight-dark/20 opacity-0 transition-opacity hover:bg-asight-red/10 hover:text-asight-red group-hover:opacity-100"
+                  >
+                    🗑
+                  </button>
                   <div className="flex items-center gap-3">
                     <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-asight-lavande text-sm font-bold text-asight-violet">
                       {c.clientName.charAt(0).toUpperCase()}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-heading font-bold text-asight-dark">
+                      <p className="truncate pr-5 font-heading font-bold text-asight-dark">
                         {c.clientName}
                       </p>
                       <p className="font-body text-xs text-asight-dark/50">
@@ -325,7 +351,7 @@ export function CreativeDashboard() {
                       </p>
                     </div>
                   </div>
-                </button>
+                </div>
               ))}
             </div>
           </div>
@@ -378,6 +404,13 @@ export function CreativeDashboard() {
                   className="rounded-full bg-asight-violet px-5 py-2.5 font-body text-sm font-semibold text-white transition-colors hover:bg-asight-violet-dark"
                 >
                   + Lancer un nouveau cycle
+                </button>
+                <button
+                  onClick={() => setDeleteClientTarget(client.clientName)}
+                  title="Supprimer ce client"
+                  className="rounded-full p-2.5 text-asight-dark/30 transition-colors hover:bg-asight-red/10 hover:text-asight-red"
+                >
+                  🗑
                 </button>
               </div>
             </div>
@@ -439,6 +472,14 @@ export function CreativeDashboard() {
           nextBatchNumber={nextBatchNumber}
           onClose={() => setNewCycleOpen(false)}
           onCreated={load}
+        />
+      )}
+
+      {deleteClientTarget && (
+        <DeleteClientModal
+          clientName={deleteClientTarget}
+          onClose={() => setDeleteClientTarget(null)}
+          onDeleted={handleClientDeleted}
         />
       )}
     </div>

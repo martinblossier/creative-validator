@@ -20,6 +20,10 @@ export async function setClientMeta(clientName: string, meta: ClientMeta): Promi
   await kv.set(META_KEY(clientName), meta);
 }
 
+export async function deleteClientMeta(clientName: string): Promise<void> {
+  await kv.del(META_KEY(clientName));
+}
+
 export async function getAllClientMeta(
   clientNames: string[]
 ): Promise<Record<string, ClientMeta>> {

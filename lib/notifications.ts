@@ -10,3 +10,7 @@ export async function getSeenReadyCount(clientName: string): Promise<number> {
 export async function markReadySeen(clientName: string, count: number): Promise<void> {
   await kv.set(SEEN_KEY(clientName), count);
 }
+
+export async function deleteSeenReady(clientName: string): Promise<void> {
+  await kv.del(SEEN_KEY(clientName));
+}
