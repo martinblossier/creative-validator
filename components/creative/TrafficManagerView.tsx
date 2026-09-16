@@ -366,14 +366,26 @@ export function TrafficManagerView({
           </button>
           <h1 className="font-heading text-2xl font-bold text-asight-dark">{client.clientName}</h1>
         </div>
-        {canGenerateNext && (
-          <button
-            onClick={() => setNewCycleClient(client)}
-            className="rounded-full bg-asight-violet px-5 py-2.5 font-body text-sm font-semibold text-white transition-colors hover:bg-asight-violet-dark"
-          >
-            🚀 Générer lien V{nextBatchNumber}
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          {batches.length > 0 && (
+            <a
+              href={`/portal/${batches[batches.length - 1].token}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-full border-2 border-asight-violet px-5 py-2.5 font-body text-sm font-semibold text-asight-violet transition-colors hover:bg-asight-lavande"
+            >
+              Voir l&apos;espace client →
+            </a>
+          )}
+          {canGenerateNext && (
+            <button
+              onClick={() => setNewCycleClient(client)}
+              className="rounded-full bg-asight-violet px-5 py-2.5 font-body text-sm font-semibold text-white transition-colors hover:bg-asight-violet-dark"
+            >
+              🚀 Générer lien V{nextBatchNumber}
+            </button>
+          )}
+        </div>
       </div>
 
       {batches.length > 1 && (
