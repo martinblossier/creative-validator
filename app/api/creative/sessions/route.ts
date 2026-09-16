@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isCreativeAuthenticated } from '@/lib/creative-auth';
-import { createSession } from '@/lib/sessions';
+import { createSession, listSessions } from '@/lib/sessions';
 import { extractFolderId } from '@/lib/drive';
-import { getClientMeta, setClientMeta, type Frequency } from '@/lib/client-meta';
+import { setClientMeta, type Frequency } from '@/lib/client-meta';
 
 const FREQUENCIES: Frequency[] = ['weekly', 'monthly', 'bimonthly', 'quarterly'];
 
@@ -32,9 +32,11 @@ export async function POST(req: NextRequest) {
 
   // Recurrence is a one-time, client-level choice: only required (and only
   // written) the first time we see this client — later cycles for the same
-  // client reuse this same endpoint without re-asking for it.
-  const existingMeta = await getClientMeta(clientName);
-  if (!existingMeta) {
+  // client reuse this same endpoint without re-asking for it. Checked against
+  // existing sessions (not client-meta) so clients created before this field
+  // existed aren't asked again on every new cycle.
+  const isNewClient = !(await listSessions()).some((s) => s.clientName === clientName);
+  if (isNewClient) {
     const recurrence = body?.recurrence;
     if (recurrence !== 'recurrent' && recurrence !== 'one_shot') {
       return NextResponse.json(
