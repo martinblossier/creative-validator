@@ -9,12 +9,16 @@ import {
 
 export type BatchOverview = {
   token: string;
+  clientName: string;
   batchNumber: number;
-  batchLabel: string; // "V1"
+  batchLabel: string; // "V1" — internal key, matches Sheets rows. Never shown to users.
+  displayName: string; // "Client - B1 - 16/09/2026"
   createdAt: string;
   totalCreatives: number;
   validatedCount: number;
   rejectedCount: number;
+  isComplete: boolean; // true once every creative in the batch is validated
+  assignedTo: string | null;
   rows: SheetRow[];
   reworkRows: SheetRow[];
 };
@@ -29,6 +33,14 @@ export type ClientOverview = {
     lastActivity: string | null; // ISO
   };
 };
+
+function formatShortDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+}
 
 export async function getClientsOverview(): Promise<ClientOverview[]> {
   const sessions = await listSessions();
@@ -56,15 +68,22 @@ export async function getClientsOverview(): Promise<ClientOverview[]> {
       const rejectedCount = batchRows.filter(
         (r) => r.status === STATUS_REJECTED
       ).length;
+      const totalCreatives = session.totalCreatives ?? batchRows.length;
 
       return {
         token: session.token,
+        clientName,
         batchNumber: session.batchNumber,
         batchLabel,
+        displayName: `${clientName} - B${session.batchNumber} - ${formatShortDate(
+          session.createdAt
+        )}`,
         createdAt: session.createdAt,
-        totalCreatives: session.totalCreatives ?? batchRows.length,
+        totalCreatives,
         validatedCount,
         rejectedCount,
+        isComplete: totalCreatives > 0 && validatedCount === totalCreatives,
+        assignedTo: session.assignedTo,
         rows: batchRows,
         reworkRows: batchRows.filter((r) => r.status === STATUS_REJECTED),
       };

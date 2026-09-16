@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Logo } from '@/components/Logo';
-import { BatchCard } from './BatchCard';
-import { NewCycleForm } from './NewCycleForm';
+import { BatchPanel } from './BatchPanel';
+import { NewCycleModal } from './NewCycleModal';
 import { NewClientModal } from './NewClientModal';
+import { TraficCreatif } from './TraficCreatif';
 import type { ClientOverview } from '@/lib/creative';
 
 function formatDate(iso: string): string {
@@ -27,11 +28,16 @@ function KpiCard({ label, value }: { label: string; value: string }) {
   );
 }
 
+type View = 'clients' | 'trafic';
+
 export function CreativeDashboard() {
   const router = useRouter();
   const [clients, setClients] = useState<ClientOverview[] | null>(null);
   const [selectedClient, setSelectedClient] = useState<string | null>(null);
+  const [selectedBatchToken, setSelectedBatchToken] = useState<string | null>(null);
   const [newClientOpen, setNewClientOpen] = useState(false);
+  const [newCycleOpen, setNewCycleOpen] = useState(false);
+  const [view, setView] = useState<View>('clients');
 
   const load = useCallback(async () => {
     const res = await fetch('/api/creative/clients');
@@ -58,12 +64,37 @@ export function CreativeDashboard() {
     setNewClientOpen(false);
     await load();
     setSelectedClient(clientName);
+    setView('clients');
+  }
+
+  function handleAssigned(token: string, assignedTo: string | null) {
+    setClients((prev) =>
+      prev
+        ? prev.map((c) => ({
+            ...c,
+            batches: c.batches.map((b) =>
+              b.token === token ? { ...b, assignedTo } : b
+            ),
+          }))
+        : prev
+    );
   }
 
   const client = clients?.find((c) => c.clientName === selectedClient) ?? null;
   const nextBatchNumber = client
     ? (client.batches[client.batches.length - 1]?.batchNumber ?? 0) + 1
     : 1;
+
+  // Most recent batch first in the dropdown.
+  const sortedBatches = useMemo(
+    () => (client ? [...client.batches].reverse() : []),
+    [client]
+  );
+
+  const selectedBatch =
+    sortedBatches.find((b) => b.token === selectedBatchToken) ??
+    sortedBatches[0] ??
+    null;
 
   return (
     <div className="flex min-h-screen bg-white">
@@ -72,6 +103,29 @@ export function CreativeDashboard() {
           <Logo />
         </div>
         <nav className="flex-1 overflow-y-auto px-3 py-4">
+          <div className="mb-4 flex gap-1 rounded-lg bg-asight-lavande/60 p-1">
+            <button
+              onClick={() => setView('clients')}
+              className={`flex-1 rounded-md px-2 py-1.5 font-body text-xs font-semibold transition-colors ${
+                view === 'clients'
+                  ? 'bg-white text-asight-dark shadow-sm'
+                  : 'text-asight-dark/50 hover:text-asight-dark'
+              }`}
+            >
+              Clients
+            </button>
+            <button
+              onClick={() => setView('trafic')}
+              className={`flex-1 rounded-md px-2 py-1.5 font-body text-xs font-semibold transition-colors ${
+                view === 'trafic'
+                  ? 'bg-white text-asight-dark shadow-sm'
+                  : 'text-asight-dark/50 hover:text-asight-dark'
+              }`}
+            >
+              Trafic créatif
+            </button>
+          </div>
+
           <button
             onClick={() => setNewClientOpen(true)}
             className="mb-4 w-full rounded-lg border-2 border-dashed border-asight-violet px-3 py-2 font-body text-sm font-semibold text-asight-violet transition-colors hover:bg-asight-lavande"
@@ -91,9 +145,13 @@ export function CreativeDashboard() {
             {clients?.map((c) => (
               <li key={c.clientName}>
                 <button
-                  onClick={() => setSelectedClient(c.clientName)}
+                  onClick={() => {
+                    setSelectedClient(c.clientName);
+                    setSelectedBatchToken(null);
+                    setView('clients');
+                  }}
                   className={`w-full rounded-lg px-3 py-2 text-left font-body text-sm font-semibold transition-colors ${
-                    c.clientName === selectedClient
+                    view === 'clients' && c.clientName === selectedClient
                       ? 'bg-asight-violet text-white'
                       : 'text-asight-dark hover:bg-asight-lavande'
                   }`}
@@ -125,27 +183,51 @@ export function CreativeDashboard() {
           </button>
         </div>
 
-        <div className="mb-6 flex flex-col gap-3 lg:hidden">
-          {clients && clients.length > 0 && (
-            <select
-              value={selectedClient ?? ''}
-              onChange={(e) => setSelectedClient(e.target.value)}
-              className="w-full rounded-lg border border-asight-muted px-4 py-2 font-body text-sm"
-            >
-              {clients.map((c) => (
-                <option key={c.clientName} value={c.clientName}>
-                  {c.clientName}
-                </option>
-              ))}
-            </select>
-          )}
+        <div className="mb-6 flex gap-1 rounded-lg bg-asight-lavande/60 p-1 lg:hidden">
           <button
-            onClick={() => setNewClientOpen(true)}
-            className="w-full rounded-lg border-2 border-dashed border-asight-violet px-3 py-2 font-body text-sm font-semibold text-asight-violet transition-colors hover:bg-asight-lavande"
+            onClick={() => setView('clients')}
+            className={`flex-1 rounded-md px-2 py-1.5 font-body text-xs font-semibold transition-colors ${
+              view === 'clients' ? 'bg-white text-asight-dark shadow-sm' : 'text-asight-dark/50'
+            }`}
           >
-            + Nouveau client
+            Clients
+          </button>
+          <button
+            onClick={() => setView('trafic')}
+            className={`flex-1 rounded-md px-2 py-1.5 font-body text-xs font-semibold transition-colors ${
+              view === 'trafic' ? 'bg-white text-asight-dark shadow-sm' : 'text-asight-dark/50'
+            }`}
+          >
+            Trafic créatif
           </button>
         </div>
+
+        {view === 'clients' && (
+          <div className="mb-6 flex flex-col gap-3 lg:hidden">
+            {clients && clients.length > 0 && (
+              <select
+                value={selectedClient ?? ''}
+                onChange={(e) => {
+                  setSelectedClient(e.target.value);
+                  setSelectedBatchToken(null);
+                }}
+                className="w-full rounded-lg border border-asight-muted px-4 py-2 font-body text-sm"
+              >
+                {clients.map((c) => (
+                  <option key={c.clientName} value={c.clientName}>
+                    {c.clientName}
+                  </option>
+                ))}
+              </select>
+            )}
+            <button
+              onClick={() => setNewClientOpen(true)}
+              className="w-full rounded-lg border-2 border-dashed border-asight-violet px-3 py-2 font-body text-sm font-semibold text-asight-violet transition-colors hover:bg-asight-lavande"
+            >
+              + Nouveau client
+            </button>
+          </div>
+        )}
 
         {clients === null && (
           <p className="font-body text-asight-dark/60">Chargement…</p>
@@ -157,17 +239,31 @@ export function CreativeDashboard() {
           </p>
         )}
 
-        {client && (
-          <>
-            <h1 className="mb-1 font-heading text-2xl font-bold text-asight-dark">
-              {client.clientName}
-            </h1>
-            <p className="mb-6 font-body text-sm text-asight-dark/50">
-              {client.kpis.cyclesCount} round{client.kpis.cyclesCount !== 1 ? 's' : ''} de
-              validation
-            </p>
+        {view === 'trafic' && clients && clients.length > 0 && (
+          <TraficCreatif clients={clients} onAssigned={handleAssigned} />
+        )}
 
-            <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        {view === 'clients' && client && (
+          <>
+            <div className="mb-1 flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h1 className="font-heading text-2xl font-bold text-asight-dark">
+                  {client.clientName}
+                </h1>
+                <p className="font-body text-sm text-asight-dark/50">
+                  {client.kpis.cyclesCount} round{client.kpis.cyclesCount !== 1 ? 's' : ''} de
+                  validation
+                </p>
+              </div>
+              <button
+                onClick={() => setNewCycleOpen(true)}
+                className="rounded-full border-2 border-asight-violet px-5 py-2.5 font-body text-sm font-semibold text-asight-violet transition-colors hover:bg-asight-lavande"
+              >
+                + Lancer un nouveau cycle
+              </button>
+            </div>
+
+            <div className="mb-8 mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
               <KpiCard label="Créas soumises" value={String(client.kpis.totalCreatives)} />
               <KpiCard
                 label="Taux de validation"
@@ -180,17 +276,33 @@ export function CreativeDashboard() {
               />
             </div>
 
-            <div className="flex flex-col gap-4">
-              {client.batches.map((batch) => (
-                <BatchCard key={batch.token} batch={batch} />
-              ))}
-            </div>
+            {sortedBatches.length === 0 ? (
+              <p className="font-body text-asight-dark/60">
+                Aucun cycle pour ce client pour le moment.
+              </p>
+            ) : (
+              <>
+                <div className="mb-4">
+                  <label className="mb-1.5 block font-body text-xs font-semibold uppercase tracking-wide text-asight-dark/40">
+                    Cycle
+                  </label>
+                  <select
+                    value={selectedBatch?.token ?? ''}
+                    onChange={(e) => setSelectedBatchToken(e.target.value)}
+                    className="w-full max-w-md rounded-lg border border-asight-muted bg-white px-4 py-2.5 font-body text-sm text-asight-dark outline-none focus:ring-2 focus:ring-asight-violet"
+                  >
+                    {sortedBatches.map((b) => (
+                      <option key={b.token} value={b.token}>
+                        {b.isComplete ? '✓ ' : '… '}
+                        {b.displayName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-            <NewCycleForm
-              clientName={client.clientName}
-              nextBatchNumber={nextBatchNumber}
-              onCreated={load}
-            />
+                {selectedBatch && <BatchPanel batch={selectedBatch} />}
+              </>
+            )}
           </>
         )}
       </main>
@@ -199,6 +311,15 @@ export function CreativeDashboard() {
         <NewClientModal
           onClose={() => setNewClientOpen(false)}
           onCreated={handleClientCreated}
+        />
+      )}
+
+      {newCycleOpen && client && (
+        <NewCycleModal
+          clientName={client.clientName}
+          nextBatchNumber={nextBatchNumber}
+          onClose={() => setNewCycleOpen(false)}
+          onCreated={load}
         />
       )}
     </div>

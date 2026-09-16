@@ -9,14 +9,19 @@ export type Session = {
   totalCreatives: number | null;
   reviewedCount: number;
   batchNumber: number;
+  assignedTo: string | null;
 };
 
 const SESSION_KEY = (token: string) => `session:${token}`;
 const SESSION_INDEX_KEY = 'sessions:index';
 
-/** Legacy sessions created before batch tracking existed default to V1. */
+/** Legacy sessions created before batch/assignment tracking existed get defaults. */
 function normalizeSession(session: Session): Session {
-  return { ...session, batchNumber: session.batchNumber ?? 1 };
+  return {
+    ...session,
+    batchNumber: session.batchNumber ?? 1,
+    assignedTo: session.assignedTo ?? null,
+  };
 }
 
 export async function createSession(
@@ -37,6 +42,7 @@ export async function createSession(
     totalCreatives: null,
     reviewedCount: 0,
     batchNumber,
+    assignedTo: null,
   };
 
   await kv.set(SESSION_KEY(token), session);
