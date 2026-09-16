@@ -6,6 +6,7 @@ import {
   STATUS_REJECTED,
   type SheetRow,
 } from './sheets';
+import type { TrafficStatus } from './traffic-status';
 
 export type BatchOverview = {
   token: string;
@@ -19,6 +20,7 @@ export type BatchOverview = {
   rejectedCount: number;
   isComplete: boolean; // true once every creative in the batch is validated
   assignedTo: string | null;
+  status: TrafficStatus; // production status, driven by the Trafic créatif kanban
   rows: SheetRow[];
   reworkRows: SheetRow[];
 };
@@ -84,6 +86,7 @@ export async function getClientsOverview(): Promise<ClientOverview[]> {
         rejectedCount,
         isComplete: totalCreatives > 0 && validatedCount === totalCreatives,
         assignedTo: session.assignedTo,
+        status: session.status,
         rows: batchRows,
         reworkRows: batchRows.filter((r) => r.status === STATUS_REJECTED),
       };

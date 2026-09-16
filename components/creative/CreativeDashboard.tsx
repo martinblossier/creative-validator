@@ -7,7 +7,7 @@ import { BatchPanel } from './BatchPanel';
 import { NewCycleModal } from './NewCycleModal';
 import { NewClientModal } from './NewClientModal';
 import { TraficCreatif } from './TraficCreatif';
-import type { ClientOverview } from '@/lib/creative';
+import type { ClientOverview, BatchOverview } from '@/lib/creative';
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('fr-FR', {
@@ -67,13 +67,16 @@ export function CreativeDashboard() {
     setView('clients');
   }
 
-  function handleAssigned(token: string, assignedTo: string | null) {
+  function handleBatchUpdated(
+    token: string,
+    patch: Partial<Pick<BatchOverview, 'assignedTo' | 'status'>>
+  ) {
     setClients((prev) =>
       prev
         ? prev.map((c) => ({
             ...c,
             batches: c.batches.map((b) =>
-              b.token === token ? { ...b, assignedTo } : b
+              b.token === token ? { ...b, ...patch } : b
             ),
           }))
         : prev
@@ -240,7 +243,11 @@ export function CreativeDashboard() {
         )}
 
         {view === 'trafic' && clients && clients.length > 0 && (
-          <TraficCreatif clients={clients} onAssigned={handleAssigned} />
+          <TraficCreatif
+            clients={clients}
+            onBatchUpdated={handleBatchUpdated}
+            onSyncFailed={load}
+          />
         )}
 
         {view === 'clients' && client && (
