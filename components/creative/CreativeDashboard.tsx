@@ -33,6 +33,13 @@ function KpiCard({ label, value }: { label: string; value: string }) {
 
 type View = 'clients' | 'trafic' | 'tracker' | 'agenda';
 
+const NAV_ITEMS: { view: View; label: string; icon: string }[] = [
+  { view: 'clients', label: 'Clients', icon: '👥' },
+  { view: 'trafic', label: 'Trafic créatif', icon: '🚦' },
+  { view: 'tracker', label: 'Batch Tracker', icon: '🗂️' },
+  { view: 'agenda', label: 'Agenda', icon: '🗓️' },
+];
+
 export function CreativeDashboard() {
   const router = useRouter();
   const [clients, setClients] = useState<ClientOverview[] | null>(null);
@@ -107,60 +114,36 @@ export function CreativeDashboard() {
 
   return (
     <div className="flex min-h-screen bg-white">
-      <aside className="hidden w-64 flex-shrink-0 flex-col border-r border-asight-lavande bg-white lg:flex">
+      <aside className="hidden w-72 flex-shrink-0 flex-col border-r border-asight-lavande bg-white lg:flex">
         <div className="border-b border-asight-lavande px-5 py-5">
           <Logo />
         </div>
         <nav className="flex-1 overflow-y-auto px-3 py-4">
-          <div className="mb-4 flex gap-1 rounded-lg bg-asight-lavande/60 p-1">
-            <button
-              onClick={() => setView('clients')}
-              className={`flex-1 rounded-md px-2 py-1.5 font-body text-xs font-semibold transition-colors ${
-                view === 'clients'
-                  ? 'bg-white text-asight-dark shadow-sm'
-                  : 'text-asight-dark/50 hover:text-asight-dark'
-              }`}
-            >
-              Clients
-            </button>
-            <button
-              onClick={() => setView('trafic')}
-              className={`flex-1 rounded-md px-2 py-1.5 font-body text-xs font-semibold transition-colors ${
-                view === 'trafic'
-                  ? 'bg-white text-asight-dark shadow-sm'
-                  : 'text-asight-dark/50 hover:text-asight-dark'
-              }`}
-            >
-              Trafic créatif
-            </button>
-            <button
-              onClick={() => setView('tracker')}
-              className={`flex-1 rounded-md px-2 py-1.5 font-body text-xs font-semibold transition-colors ${
-                view === 'tracker'
-                  ? 'bg-white text-asight-dark shadow-sm'
-                  : 'text-asight-dark/50 hover:text-asight-dark'
-              }`}
-            >
-              Batch Tracker
-            </button>
-            <button
-              onClick={() => setView('agenda')}
-              className={`flex-1 rounded-md px-2 py-1.5 font-body text-xs font-semibold transition-colors ${
-                view === 'agenda'
-                  ? 'bg-white text-asight-dark shadow-sm'
-                  : 'text-asight-dark/50 hover:text-asight-dark'
-              }`}
-            >
-              Agenda
-            </button>
-          </div>
+          <ul className="mb-6 flex flex-col gap-1">
+            {NAV_ITEMS.map((item) => (
+              <li key={item.view}>
+                <button
+                  onClick={() => setView(item.view)}
+                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 font-body text-sm font-semibold transition-colors ${
+                    view === item.view
+                      ? 'bg-asight-violet text-white shadow-sm'
+                      : 'text-asight-dark/70 hover:bg-asight-lavande'
+                  }`}
+                >
+                  <span className="text-base leading-none">{item.icon}</span>
+                  {item.label}
+                </button>
+              </li>
+            ))}
+          </ul>
 
           <button
             onClick={() => setNewClientOpen(true)}
-            className="mb-4 w-full rounded-lg border-2 border-dashed border-asight-violet px-3 py-2 font-body text-sm font-semibold text-asight-violet transition-colors hover:bg-asight-lavande"
+            className="mb-5 flex w-full items-center justify-center gap-2 rounded-xl bg-asight-violet px-3 py-2.5 font-body text-sm font-semibold text-white transition-colors hover:bg-asight-violet-dark"
           >
-            + Nouveau client
+            <span className="text-base leading-none">+</span> Nouveau client
           </button>
+
           <p className="mb-2 px-2 font-body text-xs font-semibold uppercase tracking-wide text-asight-dark/40">
             Clients
           </p>
@@ -171,24 +154,40 @@ export function CreativeDashboard() {
             <p className="px-2 font-body text-sm text-asight-dark/50">Aucun client.</p>
           )}
           <ul className="flex flex-col gap-1">
-            {clients?.map((c) => (
-              <li key={c.clientName}>
-                <button
-                  onClick={() => {
-                    setSelectedClient(c.clientName);
-                    setSelectedBatchToken(null);
-                    setView('clients');
-                  }}
-                  className={`w-full rounded-lg px-3 py-2 text-left font-body text-sm font-semibold transition-colors ${
-                    view === 'clients' && c.clientName === selectedClient
-                      ? 'bg-asight-violet text-white'
-                      : 'text-asight-dark hover:bg-asight-lavande'
-                  }`}
-                >
-                  {c.clientName}
-                </button>
-              </li>
-            ))}
+            {clients?.map((c) => {
+              const active = view === 'clients' && c.clientName === selectedClient;
+              return (
+                <li key={c.clientName}>
+                  <button
+                    onClick={() => {
+                      setSelectedClient(c.clientName);
+                      setSelectedBatchToken(null);
+                      setView('clients');
+                    }}
+                    className={`flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left font-body text-sm font-semibold transition-colors ${
+                      active
+                        ? 'bg-asight-violet text-white'
+                        : 'text-asight-dark hover:bg-asight-lavande'
+                    }`}
+                  >
+                    <span
+                      className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                        active ? 'bg-white/20 text-white' : 'bg-asight-lavande text-asight-violet'
+                      }`}
+                    >
+                      {c.clientName.charAt(0).toUpperCase()}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate">{c.clientName}</span>
+                    {c.hasUnseenReady && (
+                      <span
+                        className="h-2 w-2 flex-shrink-0 rounded-full bg-asight-red"
+                        title="Nouvelles créas prêtes"
+                      />
+                    )}
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         </nav>
         <div className="flex flex-col gap-2 border-t border-asight-lavande p-4">
@@ -218,39 +217,21 @@ export function CreativeDashboard() {
           </button>
         </div>
 
-        <div className="mb-6 flex gap-1 rounded-lg bg-asight-lavande/60 p-1 lg:hidden">
-          <button
-            onClick={() => setView('clients')}
-            className={`flex-1 rounded-md px-2 py-1.5 font-body text-xs font-semibold transition-colors ${
-              view === 'clients' ? 'bg-white text-asight-dark shadow-sm' : 'text-asight-dark/50'
-            }`}
-          >
-            Clients
-          </button>
-          <button
-            onClick={() => setView('trafic')}
-            className={`flex-1 rounded-md px-2 py-1.5 font-body text-xs font-semibold transition-colors ${
-              view === 'trafic' ? 'bg-white text-asight-dark shadow-sm' : 'text-asight-dark/50'
-            }`}
-          >
-            Trafic créatif
-          </button>
-          <button
-            onClick={() => setView('tracker')}
-            className={`flex-1 rounded-md px-2 py-1.5 font-body text-xs font-semibold transition-colors ${
-              view === 'tracker' ? 'bg-white text-asight-dark shadow-sm' : 'text-asight-dark/50'
-            }`}
-          >
-            Batch Tracker
-          </button>
-          <button
-            onClick={() => setView('agenda')}
-            className={`flex-1 rounded-md px-2 py-1.5 font-body text-xs font-semibold transition-colors ${
-              view === 'agenda' ? 'bg-white text-asight-dark shadow-sm' : 'text-asight-dark/50'
-            }`}
-          >
-            Agenda
-          </button>
+        <div className="-mx-6 mb-6 overflow-x-auto px-6 lg:hidden">
+          <div className="flex w-max gap-1 rounded-lg bg-asight-lavande/60 p-1">
+            {NAV_ITEMS.map((item) => (
+              <button
+                key={item.view}
+                onClick={() => setView(item.view)}
+                className={`flex flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 font-body text-xs font-semibold transition-colors ${
+                  view === item.view ? 'bg-white text-asight-dark shadow-sm' : 'text-asight-dark/50'
+                }`}
+              >
+                <span>{item.icon}</span>
+                {item.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {view === 'clients' && (
@@ -273,9 +254,9 @@ export function CreativeDashboard() {
             )}
             <button
               onClick={() => setNewClientOpen(true)}
-              className="w-full rounded-lg border-2 border-dashed border-asight-violet px-3 py-2 font-body text-sm font-semibold text-asight-violet transition-colors hover:bg-asight-lavande"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-asight-violet px-3 py-2.5 font-body text-sm font-semibold text-white transition-colors hover:bg-asight-violet-dark"
             >
-              + Nouveau client
+              <span className="text-base leading-none">+</span> Nouveau client
             </button>
           </div>
         )}
