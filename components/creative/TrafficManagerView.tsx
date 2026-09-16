@@ -37,6 +37,14 @@ const PRODUCTION_BADGE: Record<ProductionStatus, string> = {
   Prête: 'bg-asight-green/30 text-asight-dark',
 };
 
+function hasReworkPending(batch: BatchOverview): boolean {
+  return batch.reworkRows.length > 0;
+}
+
+function isReadyToSend(batch: BatchOverview): boolean {
+  return batch.reworkRows.length > 0 && batch.production.prete === batch.reworkRows.length;
+}
+
 function getHistory(
   client: ClientOverview,
   fileName: string,
@@ -65,7 +73,7 @@ export function TrafficManagerView({
   const [selectedClient, setSelectedClient] = useState<string | null>(null);
   const [selectedBatchLabel, setSelectedBatchLabel] = useState<string | null>(null);
   const [addMemberOpen, setAddMemberOpen] = useState(false);
-  const [newCycleOpen, setNewCycleOpen] = useState(false);
+  const [newCycleClient, setNewCycleClient] = useState<ClientOverview | null>(null);
   const [openHistory, setOpenHistory] = useState<Set<string>>(new Set());
   const [deadlineInput, setDeadlineInput] = useState('');
   const [pendingKey, setPendingKey] = useState<string | null>(null);
@@ -160,63 +168,153 @@ export function TrafficManagerView({
         {clients.length === 0 ? (
           <p className="mt-6 font-body text-asight-dark/60">Aucun client pour le moment.</p>
         ) : (
-          <div className="mt-6 overflow-x-auto">
-            <table className="w-full min-w-[900px] border-collapse font-body text-sm">
-              <thead>
-                <tr className="text-left text-xs uppercase tracking-wide text-asight-dark/40">
-                  <th className="pb-2 pr-4">Client</th>
-                  <th className="pb-2 pr-4">Batch</th>
-                  <th className="pb-2 pr-4">Créas</th>
-                  <th className="pb-2 pr-4">Validées</th>
-                  <th className="pb-2 pr-4">À retravailler</th>
-                  <th className="pb-2 pr-4">Non assignées</th>
-                  <th className="pb-2 pr-4">En cours</th>
-                  <th className="pb-2 pr-4">Prêtes</th>
-                  <th className="pb-2 pr-4">Deadline</th>
-                  <th className="pb-2">Statut</th>
-                </tr>
-              </thead>
-              <tbody>
-                {clients.map((c) => {
-                  const latest = c.batches[c.batches.length - 1];
-                  const badge = latest ? GLOBAL_STATUS_BADGE[latest.production.globalStatus] : null;
-                  return (
-                    <tr
-                      key={c.clientName}
-                      onClick={() => openClient(c)}
-                      className="cursor-pointer border-t border-asight-lavande hover:bg-asight-lavande/40"
-                    >
-                      <td className="py-3 pr-4 font-semibold text-asight-dark">
-                        <span className="inline-flex items-center gap-2">
-                          {c.clientName}
-                          {c.hasUnseenReady && (
-                            <span className="h-2 w-2 rounded-full bg-asight-red" title="Nouvelles créas prêtes" />
-                          )}
-                        </span>
-                      </td>
-                      <td className="py-3 pr-4 text-asight-dark/70">{latest?.batchLabel ?? '—'}</td>
-                      <td className="py-3 pr-4 text-asight-dark/70">{latest?.totalCreatives ?? 0}</td>
-                      <td className="py-3 pr-4 text-asight-dark/70">{latest?.validatedCount ?? 0}</td>
-                      <td className="py-3 pr-4 text-asight-dark/70">{latest?.rejectedCount ?? 0}</td>
-                      <td className="py-3 pr-4 text-asight-dark/70">{latest?.production.nonAssignee ?? 0}</td>
-                      <td className="py-3 pr-4 text-asight-dark/70">{latest?.production.enCours ?? 0}</td>
-                      <td className="py-3 pr-4 text-asight-dark/70">{latest?.production.prete ?? 0}</td>
-                      <td className="py-3 pr-4 text-asight-dark/70">
-                        {formatDate(latest?.production.deadline ?? null)}
-                      </td>
-                      <td className="py-3">
-                        {badge && (
-                          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${badge.className}`}>
-                            {badge.label}
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          (() => {
+            const readyClients = clients.filter((c) => {
+              const latest = c.batches[c.batches.length - 1];
+              return latest && isReadyToSend(latest);
+            });
+            const inProgressClients = clients.filter((c) => {
+              const latest = c.batches[c.batches.length - 1];
+              return !latest || !isReadyToSend(latest);
+            });
+
+            return (
+              <div className="mt-6 flex flex-col gap-8">
+                <div>
+                  <h2 className="mb-2 font-heading text-sm font-bold uppercase tracking-wide text-asight-dark/50">
+                    🟢 Prêts à envoyer ({readyClients.length})
+                  </h2>
+                  {readyClients.length === 0 ? (
+                    <p className="rounded-xl border border-dashed border-asight-muted px-4 py-4 font-body text-sm text-asight-dark/40">
+                      Aucun batch prêt à renvoyer pour le moment.
+                    </p>
+                  ) : (
+                    <div className="overflow-x-auto rounded-2xl border border-asight-lavande bg-white shadow-card">
+                      <table className="w-full min-w-[800px] border-collapse font-body text-sm">
+                        <thead>
+                          <tr className="text-left text-xs uppercase tracking-wide text-asight-dark/40">
+                            <th className="px-4 py-3">Client</th>
+                            <th className="px-4 py-3">Batch</th>
+                            <th className="px-4 py-3">À retravailler</th>
+                            <th className="px-4 py-3">Prêtes</th>
+                            <th className="px-4 py-3" />
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {readyClients.map((c) => {
+                            const latest = c.batches[c.batches.length - 1];
+                            const nextBatchNumber = (latest?.batchNumber ?? 0) + 1;
+                            return (
+                              <tr
+                                key={c.clientName}
+                                onClick={() => openClient(c)}
+                                className="cursor-pointer border-t border-asight-lavande hover:bg-asight-lavande/40"
+                              >
+                                <td className="px-4 py-3 font-semibold text-asight-dark">
+                                  <span className="inline-flex items-center gap-2">
+                                    {c.clientName}
+                                    {c.hasUnseenReady && (
+                                      <span className="h-2 w-2 rounded-full bg-asight-red" title="Nouvelles créas prêtes" />
+                                    )}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3 text-asight-dark/70">{latest?.batchLabel}</td>
+                                <td className="px-4 py-3 text-asight-dark/70">{latest?.rejectedCount ?? 0}</td>
+                                <td className="px-4 py-3 text-asight-dark/70">{latest?.production.prete ?? 0}</td>
+                                <td className="px-4 py-3 text-right">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setNewCycleClient(c);
+                                    }}
+                                    className="whitespace-nowrap rounded-full bg-asight-violet px-4 py-2 font-body text-xs font-semibold text-white transition-colors hover:bg-asight-violet-dark"
+                                  >
+                                    → Charger le lien V{nextBatchNumber}
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <h2 className="mb-2 font-heading text-sm font-bold uppercase tracking-wide text-asight-dark/50">
+                    🟡 En cours ({inProgressClients.length})
+                  </h2>
+                  {inProgressClients.length === 0 ? (
+                    <p className="rounded-xl border border-dashed border-asight-muted px-4 py-4 font-body text-sm text-asight-dark/40">
+                      Aucun batch en cours.
+                    </p>
+                  ) : (
+                    <div className="overflow-x-auto rounded-2xl border border-asight-lavande bg-white shadow-card">
+                      <table className="w-full min-w-[900px] border-collapse font-body text-sm">
+                        <thead>
+                          <tr className="text-left text-xs uppercase tracking-wide text-asight-dark/40">
+                            <th className="px-4 py-3">Client</th>
+                            <th className="px-4 py-3">Batch</th>
+                            <th className="px-4 py-3">Créas</th>
+                            <th className="px-4 py-3">Validées</th>
+                            <th className="px-4 py-3">À retravailler</th>
+                            <th className="px-4 py-3">Non assignées</th>
+                            <th className="px-4 py-3">En cours</th>
+                            <th className="px-4 py-3">Prêtes</th>
+                            <th className="px-4 py-3">Deadline</th>
+                            <th className="px-4 py-3">Statut</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {inProgressClients.map((c) => {
+                            const latest = c.batches[c.batches.length - 1];
+                            const badge = latest ? GLOBAL_STATUS_BADGE[latest.production.globalStatus] : null;
+                            return (
+                              <tr
+                                key={c.clientName}
+                                onClick={() => openClient(c)}
+                                className="cursor-pointer border-t border-asight-lavande hover:bg-asight-lavande/40"
+                              >
+                                <td className="px-4 py-3 font-semibold text-asight-dark">
+                                  <span className="inline-flex items-center gap-2">
+                                    {c.clientName}
+                                    {c.hasUnseenReady && (
+                                      <span className="h-2 w-2 rounded-full bg-asight-red" title="Nouvelles créas prêtes" />
+                                    )}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3 text-asight-dark/70">{latest?.batchLabel ?? '—'}</td>
+                                <td className="px-4 py-3 text-asight-dark/70">{latest?.totalCreatives ?? 0}</td>
+                                <td className="px-4 py-3 text-asight-dark/70">{latest?.validatedCount ?? 0}</td>
+                                <td className="px-4 py-3 text-asight-dark/70">{latest?.rejectedCount ?? 0}</td>
+                                <td className="px-4 py-3 text-asight-dark/70">{latest?.production.nonAssignee ?? 0}</td>
+                                <td className="px-4 py-3 text-asight-dark/70">{latest?.production.enCours ?? 0}</td>
+                                <td className="px-4 py-3 text-asight-dark/70">{latest?.production.prete ?? 0}</td>
+                                <td className="px-4 py-3 text-asight-dark/70">
+                                  {formatDate(latest?.production.deadline ?? null)}
+                                </td>
+                                <td className="px-4 py-3">
+                                  {latest && hasReworkPending(latest) && badge && (
+                                    <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${badge.className}`}>
+                                      {badge.label}
+                                    </span>
+                                  )}
+                                  {latest && !hasReworkPending(latest) && (
+                                    <span className="font-body text-xs text-asight-dark/30">Rien à traiter</span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()
         )}
 
         {addMemberOpen && (
@@ -226,6 +324,17 @@ export function TrafficManagerView({
               onTeamMemberAdded(name, role);
               setAddMemberOpen(false);
             }}
+          />
+        )}
+
+        {newCycleClient && (
+          <NewCycleModal
+            clientName={newCycleClient.clientName}
+            nextBatchNumber={
+              (newCycleClient.batches[newCycleClient.batches.length - 1]?.batchNumber ?? 0) + 1
+            }
+            onClose={() => setNewCycleClient(null)}
+            onCreated={onRefresh}
           />
         )}
       </div>
@@ -259,7 +368,7 @@ export function TrafficManagerView({
         </div>
         {canGenerateNext && (
           <button
-            onClick={() => setNewCycleOpen(true)}
+            onClick={() => setNewCycleClient(client)}
             className="rounded-full bg-asight-violet px-5 py-2.5 font-body text-sm font-semibold text-white transition-colors hover:bg-asight-violet-dark"
           >
             🚀 Générer lien V{nextBatchNumber}
@@ -267,6 +376,11 @@ export function TrafficManagerView({
         )}
       </div>
 
+      {batches.length > 1 && (
+        <p className="mb-2 font-body text-xs font-semibold text-asight-dark/40">
+          👆 Cliquez sur un cycle pour voir son détail
+        </p>
+      )}
       <div className="mb-4 flex flex-wrap gap-2">
         {batches.map((b) => (
           <button
@@ -275,10 +389,10 @@ export function TrafficManagerView({
               setSelectedBatchLabel(b.batchLabel);
               setDeadlineInput('');
             }}
-            className={`rounded-full px-4 py-1.5 font-body text-sm font-semibold transition-colors ${
+            className={`rounded-full border-2 px-4 py-1.5 font-body text-sm font-semibold transition-all ${
               selectedBatch?.batchLabel === b.batchLabel
-                ? 'bg-asight-violet text-white'
-                : 'bg-asight-lavande/60 text-asight-dark hover:bg-asight-lavande'
+                ? 'border-asight-violet bg-asight-violet text-white shadow-sm'
+                : 'border-asight-muted bg-white text-asight-dark hover:-translate-y-0.5 hover:border-asight-violet hover:shadow-sm'
             }`}
           >
             {b.batchLabel}
@@ -431,11 +545,11 @@ export function TrafficManagerView({
         />
       )}
 
-      {newCycleOpen && (
+      {newCycleClient && (
         <NewCycleModal
-          clientName={client.clientName}
+          clientName={newCycleClient.clientName}
           nextBatchNumber={nextBatchNumber}
-          onClose={() => setNewCycleOpen(false)}
+          onClose={() => setNewCycleClient(null)}
           onCreated={onRefresh}
         />
       )}
