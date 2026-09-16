@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isCreativeAuthenticated } from '@/lib/creative-auth';
 import { updateSession, type Session } from '@/lib/sessions';
-import { TEAM_MEMBERS } from '@/lib/team';
+import { getTeamMembers } from '@/lib/team-store';
 import { TRAFFIC_STATUSES } from '@/lib/traffic-status';
 
 export async function POST(req: NextRequest) {
@@ -20,8 +20,11 @@ export async function POST(req: NextRequest) {
 
   if ('assignedTo' in (body ?? {})) {
     const assignedTo = body.assignedTo === null ? null : body.assignedTo;
-    if (assignedTo !== null && !TEAM_MEMBERS.includes(assignedTo)) {
-      return NextResponse.json({ error: 'Membre invalide.' }, { status: 400 });
+    if (assignedTo !== null) {
+      const members = await getTeamMembers();
+      if (!members.includes(assignedTo)) {
+        return NextResponse.json({ error: 'Membre invalide.' }, { status: 400 });
+      }
     }
     patch.assignedTo = assignedTo;
   }
@@ -31,6 +34,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Statut invalide.' }, { status: 400 });
     }
     patch.status = body.status;
+  }
+
+  if ('archived' in (body ?? {})) {
+    if (typeof body.archived !== 'boolean') {
+      return NextResponse.json({ error: 'Valeur d\'archivage invalide.' }, { status: 400 });
+    }
+    patch.archived = body.archived;
   }
 
   const session = await updateSession(token, patch);

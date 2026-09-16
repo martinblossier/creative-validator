@@ -12,18 +12,20 @@ export type Session = {
   batchNumber: number;
   assignedTo: string | null;
   status: TrafficStatus;
+  archived: boolean;
 };
 
 const SESSION_KEY = (token: string) => `session:${token}`;
 const SESSION_INDEX_KEY = 'sessions:index';
 
-/** Legacy sessions created before batch/assignment/status tracking existed get defaults. */
+/** Legacy sessions created before batch/assignment/status/archive tracking existed get defaults. */
 function normalizeSession(session: Session): Session {
   return {
     ...session,
     batchNumber: session.batchNumber ?? 1,
     assignedTo: session.assignedTo ?? null,
     status: session.status ?? 'a_commencer',
+    archived: session.archived ?? false,
   };
 }
 
@@ -47,6 +49,7 @@ export async function createSession(
     batchNumber,
     assignedTo: null,
     status: 'a_commencer',
+    archived: false,
   };
 
   await kv.set(SESSION_KEY(token), session);

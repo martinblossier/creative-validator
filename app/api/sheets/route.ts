@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession, incrementReviewedCount } from '@/lib/sessions';
+import { getSession, incrementReviewedCount, updateSession } from '@/lib/sessions';
 import {
   appendReviewRow,
   formatDecisionDate,
+  getClientRows,
   STATUS_VALIDATED,
   STATUS_REJECTED,
 } from '@/lib/sheets';
+import { notifySlack } from '@/lib/slack';
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
@@ -55,6 +57,26 @@ export async function POST(req: NextRequest) {
     });
 
     await incrementReviewedCount(token);
+
+    const reviewedSoFar = session.reviewedCount + 1;
+    const batchComplete =
+      session.totalCreatives !== null && reviewedSoFar >= session.totalCreatives;
+
+    if (batchComplete) {
+      await updateSession(token, { status: 'a_commencer' });
+
+      const batchLabel = `V${session.batchNumber}`;
+      const rows = await getClientRows(sheetId, session.clientName);
+      const batchRows = rows.filter((r) => r.batch === batchLabel);
+      const validated = batchRows.filter((r) => r.status === STATUS_VALIDATED).length;
+      const rejected = batchRows.filter((r) => r.status === STATUS_REJECTED).length;
+
+      await notifySlack(
+        `📋 *${session.clientName}* a terminé la validation du batch *${batchLabel}*\n` +
+          `✅ ${validated} validée${validated !== 1 ? 's' : ''} · 🔄 ${rejected} à retravailler\n` +
+          `→ Batch remis dans "À commencer" dans le Trafic créatif.`
+      );
+    }
 
     return NextResponse.json({ ok: true });
   } catch (err) {

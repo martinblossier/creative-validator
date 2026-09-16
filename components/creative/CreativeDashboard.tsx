@@ -38,6 +38,7 @@ export function CreativeDashboard() {
   const [newClientOpen, setNewClientOpen] = useState(false);
   const [newCycleOpen, setNewCycleOpen] = useState(false);
   const [view, setView] = useState<View>('clients');
+  const [teamMembers, setTeamMembers] = useState<string[]>([]);
 
   const load = useCallback(async () => {
     const res = await fetch('/api/creative/clients');
@@ -51,9 +52,21 @@ export function CreativeDashboard() {
     setSelectedClient((prev) => prev ?? loaded[0]?.clientName ?? null);
   }, [router]);
 
+  const loadTeam = useCallback(async () => {
+    const res = await fetch('/api/creative/team');
+    if (res.status === 401) return;
+    const data = await res.json();
+    setTeamMembers(data.members ?? []);
+  }, []);
+
   useEffect(() => {
     load();
-  }, [load]);
+    loadTeam();
+  }, [load, loadTeam]);
+
+  function handleTeamMemberAdded(name: string) {
+    setTeamMembers((prev) => (prev.includes(name) ? prev : [...prev, name]));
+  }
 
   async function handleLogout() {
     await fetch('/api/creative/login', { method: 'DELETE' });
@@ -69,7 +82,7 @@ export function CreativeDashboard() {
 
   function handleBatchUpdated(
     token: string,
-    patch: Partial<Pick<BatchOverview, 'assignedTo' | 'status'>>
+    patch: Partial<Pick<BatchOverview, 'assignedTo' | 'status' | 'archived'>>
   ) {
     setClients((prev) =>
       prev
@@ -245,8 +258,10 @@ export function CreativeDashboard() {
         {view === 'trafic' && clients && clients.length > 0 && (
           <TraficCreatif
             clients={clients}
+            teamMembers={teamMembers}
             onBatchUpdated={handleBatchUpdated}
             onSyncFailed={load}
+            onTeamMemberAdded={handleTeamMemberAdded}
           />
         )}
 
@@ -302,6 +317,7 @@ export function CreativeDashboard() {
                       <option key={b.token} value={b.token}>
                         {b.isComplete ? '✓ ' : '… '}
                         {b.displayName}
+                        {b.archived ? ' · archivé' : ''}
                       </option>
                     ))}
                   </select>
