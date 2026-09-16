@@ -23,7 +23,13 @@ const PRODUCTION_LABEL: Record<string, string> = {
 export function ClientPortal({ client }: { client: ClientOverview }) {
   const batches = client.batches; // ascending by batchNumber
   const latest = batches[batches.length - 1] ?? null;
-  const needsClientAction = Boolean(latest) && latest!.rows.length < latest!.totalCreatives;
+  // A batch that hasn't been opened yet has totalCreatives === 0 (Drive not
+  // scanned) — it still needs the client's action, so only treat a batch as
+  // "done" once we positively know every creative in it has been decided.
+  const isFullyReviewed = Boolean(
+    latest && latest.totalCreatives > 0 && latest.rows.length >= latest.totalCreatives
+  );
+  const needsClientAction = Boolean(latest) && !isFullyReviewed;
   const progressPct =
     latest && latest.totalCreatives > 0
       ? Math.round((latest.rows.length / latest.totalCreatives) * 100)
@@ -58,19 +64,25 @@ export function ClientPortal({ client }: { client: ClientOverview }) {
               <div>
                 <p className="font-heading text-lg font-bold text-asight-dark">{latest.batchLabel}</p>
                 <p className="font-body text-sm text-asight-dark/50">
-                  {latest.rows.length} / {latest.totalCreatives} créas décidées
+                  {latest.totalCreatives > 0
+                    ? `${latest.rows.length} / ${latest.totalCreatives} créas décidées`
+                    : 'Nouvelles créas à découvrir'}
                 </p>
               </div>
               <div className="flex items-center gap-3">
-                <div className="h-2 w-32 overflow-hidden rounded-full bg-asight-lavande">
-                  <div
-                    className="h-full rounded-full bg-asight-violet"
-                    style={{ width: `${progressPct}%` }}
-                  />
-                </div>
-                <span className="font-body text-sm font-semibold text-asight-dark">
-                  {progressPct}%
-                </span>
+                {latest.totalCreatives > 0 && (
+                  <>
+                    <div className="h-2 w-32 overflow-hidden rounded-full bg-asight-lavande">
+                      <div
+                        className="h-full rounded-full bg-asight-violet"
+                        style={{ width: `${progressPct}%` }}
+                      />
+                    </div>
+                    <span className="font-body text-sm font-semibold text-asight-dark">
+                      {progressPct}%
+                    </span>
+                  </>
+                )}
                 <span className="whitespace-nowrap rounded-full bg-asight-violet px-4 py-2 font-body text-sm font-semibold text-white">
                   Valider →
                 </span>
