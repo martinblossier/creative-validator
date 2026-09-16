@@ -54,7 +54,14 @@ export async function POST(req: NextRequest) {
       }
       await setClientMeta(clientName, { recurrence, frequency, referenceDate });
     } else {
-      await setClientMeta(clientName, { recurrence });
+      const value = Number(body?.value);
+      if (!Number.isFinite(value) || value <= 0) {
+        return NextResponse.json(
+          { error: 'Merci de préciser la valeur associée pour un client one shot.' },
+          { status: 400 }
+        );
+      }
+      await setClientMeta(clientName, { recurrence, value });
     }
   }
 

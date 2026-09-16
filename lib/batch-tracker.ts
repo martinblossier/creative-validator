@@ -17,6 +17,7 @@ const HEADERS = [
   'UGC',
   'Déclinaisons',
   'Facturation',
+  'Source Token',
 ];
 
 export type BatchTrackerStatus = 'En cours' | 'Terminé' | 'En pause';
@@ -36,6 +37,8 @@ export type BatchTrackerRow = {
   ugc: number;
   declinaisons: number;
   facturation: BillingStatus;
+  /** Session token this row was auto-created from, if any — prevents duplicate auto-rows. */
+  sourceToken: string;
 };
 
 function getSheetsClient() {
@@ -63,7 +66,7 @@ async function ensureTrackerTab(
 
   await sheets.spreadsheets.values.update({
     spreadsheetId,
-    range: `${TAB_NAME}!A1:M1`,
+    range: `${TAB_NAME}!A1:N1`,
     valueInputOption: 'RAW',
     requestBody: { values: [HEADERS] },
   });
@@ -109,6 +112,7 @@ function rowToValues(row: BatchTrackerRow): string[] {
     String(row.ugc),
     String(row.declinaisons),
     row.facturation,
+    row.sourceToken,
   ];
 }
 
@@ -127,6 +131,7 @@ function valuesToRow(values: string[]): BatchTrackerRow {
     ugc: Number(values[10]) || 0,
     declinaisons: Number(values[11]) || 0,
     facturation: (values[12] as BillingStatus) || 'Pas facturé',
+    sourceToken: values[13] ?? '',
   };
 }
 
@@ -135,7 +140,7 @@ export async function getBatchTrackerRows(spreadsheetId: string): Promise<BatchT
   try {
     const res = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: `${TAB_NAME}!A2:M`,
+      range: `${TAB_NAME}!A2:N`,
     });
     const values = (res.data.values as string[][]) ?? [];
     return values.filter((r) => r[0]).map(valuesToRow);
@@ -154,7 +159,7 @@ export async function addBatchTrackerRow(
   const fullRow: BatchTrackerRow = { ...row, id: nanoid(8) };
   await sheets.spreadsheets.values.append({
     spreadsheetId,
-    range: `${TAB_NAME}!A:M`,
+    range: `${TAB_NAME}!A:N`,
     valueInputOption: 'USER_ENTERED',
     insertDataOption: 'INSERT_ROWS',
     requestBody: { values: [rowToValues(fullRow)] },
@@ -171,7 +176,7 @@ export async function updateBatchTrackerRow(
   const sheets = getSheetsClient();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId,
-    range: `${TAB_NAME}!A2:M`,
+    range: `${TAB_NAME}!A2:N`,
   });
   const values = (res.data.values as string[][]) ?? [];
   const rowIndex = values.findIndex((r) => r[0] === id);
@@ -180,12 +185,41 @@ export async function updateBatchTrackerRow(
   const merged: BatchTrackerRow = { ...valuesToRow(values[rowIndex]), ...patch, id };
   await sheets.spreadsheets.values.update({
     spreadsheetId,
-    range: `${TAB_NAME}!A${rowIndex + 2}:M${rowIndex + 2}`,
+    range: `${TAB_NAME}!A${rowIndex + 2}:N${rowIndex + 2}`,
     valueInputOption: 'RAW',
     requestBody: { values: [rowToValues(merged)] },
   });
 
   return true;
+}
+
+/**
+ * Auto-creates a "Terminé" row for a fully-validated batch, pre-filled with
+ * the final creative count — skipped if a row for this session token
+ * already exists, so it only ever runs once per batch.
+ */
+export async function autoCreateBatchTrackerRow(
+  spreadsheetId: string,
+  params: { sourceToken: string; client: string; creasProduites: number; total?: number }
+): Promise<BatchTrackerRow | null> {
+  const existing = await getBatchTrackerRows(spreadsheetId);
+  if (existing.some((r) => r.sourceToken === params.sourceToken)) return null;
+
+  return addBatchTrackerRow(spreadsheetId, {
+    client: params.client,
+    statut: 'Terminé',
+    projet: `B${existing.length + 1}`,
+    total: params.total ?? 0,
+    creasProduites: params.creasProduites,
+    offre: '',
+    dateEnvoiFinal: '',
+    statique: 0,
+    motion: 0,
+    ugc: 0,
+    declinaisons: 0,
+    facturation: 'Pas facturé',
+    sourceToken: params.sourceToken,
+  });
 }
 
 export async function deleteBatchTrackerRow(spreadsheetId: string, id: string): Promise<boolean> {

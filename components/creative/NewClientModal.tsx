@@ -22,6 +22,7 @@ export function NewClientModal({
   const [recurrence, setRecurrence] = useState<Recurrence | ''>('');
   const [frequency, setFrequency] = useState<Frequency>('monthly');
   const [referenceDate, setReferenceDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [value, setValue] = useState('');
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [newUrl, setNewUrl] = useState<string | null>(null);
@@ -36,6 +37,11 @@ export function NewClientModal({
       return;
     }
 
+    if (recurrence === 'one_shot' && (!value || Number(value) <= 0)) {
+      setError('Merci de préciser la valeur associée à ce projet.');
+      return;
+    }
+
     setCreating(true);
 
     try {
@@ -47,6 +53,7 @@ export function NewClientModal({
           driveFolderUrl,
           recurrence,
           ...(recurrence === 'recurrent' ? { frequency, referenceDate } : {}),
+          ...(recurrence === 'one_shot' ? { value: Number(value) } : {}),
         }),
       });
       const data = await res.json();
@@ -207,6 +214,24 @@ export function NewClientModal({
               </div>
             )}
 
+            {recurrence === 'one_shot' && (
+              <div className="flex flex-col gap-1.5 rounded-lg bg-asight-lavande/40 p-3">
+                <label className="font-body text-sm font-semibold text-asight-dark">
+                  Valeur associée (€)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                  placeholder="Ex : 3000"
+                  required
+                  className="rounded-lg border border-asight-muted bg-white px-4 py-3 font-body text-asight-dark outline-none focus:ring-2 focus:ring-asight-violet"
+                />
+              </div>
+            )}
+
             {error && (
               <p className="rounded-lg bg-asight-red/10 px-3 py-2 font-body text-sm text-asight-red">
                 {error}
@@ -216,7 +241,11 @@ export function NewClientModal({
             <div className="flex items-center gap-3">
               <button
                 type="submit"
-                disabled={creating || !recurrence}
+                disabled={
+                  creating ||
+                  !recurrence ||
+                  (recurrence === 'one_shot' && (!value || Number(value) <= 0))
+                }
                 className="rounded-full bg-asight-violet px-6 py-3 font-body font-semibold text-white transition-colors hover:bg-asight-violet-dark disabled:opacity-50"
               >
                 {creating ? 'Création…' : 'Créer et générer le lien'}

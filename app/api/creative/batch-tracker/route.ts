@@ -41,6 +41,7 @@ export async function POST() {
     ugc: 0,
     declinaisons: 0,
     facturation: 'Pas facturé',
+    sourceToken: '',
   });
 
   return NextResponse.json({ row });

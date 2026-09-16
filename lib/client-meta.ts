@@ -7,6 +7,7 @@ export type ClientMeta = {
   recurrence: Recurrence;
   frequency?: Frequency; // set only when recurrence === 'recurrent'
   referenceDate?: string; // YYYY-MM-DD, anchor date for the recurrence cadence
+  value?: number; // €, set only when recurrence === 'one_shot'
 };
 
 const META_KEY = (clientName: string) => `creative:client_meta:${clientName}`;

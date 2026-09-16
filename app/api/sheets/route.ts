@@ -8,6 +8,8 @@ import {
   STATUS_REJECTED,
 } from '@/lib/sheets';
 import { notifySlack } from '@/lib/slack';
+import { autoCreateBatchTrackerRow } from '@/lib/batch-tracker';
+import { getClientMeta } from '@/lib/client-meta';
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
@@ -78,6 +80,14 @@ export async function POST(req: NextRequest) {
         `📋 *${session.clientName}* a terminé la validation du batch *${batchLabel}*\n` +
           `✅ ${validated} validée${validated !== 1 ? 's' : ''} · 🔄 ${rejected} à retravailler${attributionLine}`
       );
+
+      const meta = await getClientMeta(session.clientName);
+      await autoCreateBatchTrackerRow(sheetId, {
+        sourceToken: session.token,
+        client: session.clientName,
+        creasProduites: batchRows.length,
+        total: meta?.recurrence === 'one_shot' ? meta.value : undefined,
+      });
     }
 
     return NextResponse.json({ ok: true });
