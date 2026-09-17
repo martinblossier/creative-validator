@@ -47,7 +47,14 @@ export async function createSession(
 
 export async function getSession(token: string): Promise<Session | null> {
   const session = await kv.get<Session>(SESSION_KEY(token));
-  return session ? normalizeSession(session) : null;
+  if (!session) return null;
+
+  // Self-heal: a session found directly but missing from the index would
+  // otherwise be silently invisible to listSessions() / getClientsOverview()
+  // (and therefore the client portal), despite being a perfectly valid link.
+  await kv.sadd(SESSION_INDEX_KEY, token);
+
+  return normalizeSession(session);
 }
 
 export async function listSessions(): Promise<Session[]> {
