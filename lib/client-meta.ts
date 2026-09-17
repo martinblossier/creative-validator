@@ -1,4 +1,4 @@
-import { kv } from '@vercel/kv';
+import { kv } from './kv';
 
 export type Recurrence = 'recurrent' | 'one_shot';
 export type Frequency = 'weekly' | 'monthly' | 'bimonthly' | 'quarterly';

@@ -1,4 +1,4 @@
-import { kv } from '@vercel/kv';
+import { kv } from './kv';
 
 const SEEN_KEY = (clientName: string) => `creative:seen_ready:${clientName}`;
 

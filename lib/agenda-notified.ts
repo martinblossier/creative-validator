@@ -1,4 +1,4 @@
-import { kv } from '@vercel/kv';
+import { kv } from './kv';
 
 const KEY = (clientName: string, date: string) => `creative:agenda_notified:${clientName}:${date}`;
 
